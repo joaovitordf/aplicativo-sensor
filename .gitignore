@@ -1,0 +1,84 @@
+# Environment variables (Sensitive / Secrets)
+.env
+.env.*
+!.env.example
+
+# Flutter / Dart / Pub
+.dart_tool/
+.flutter-plugins
+.flutter-plugins-dependencies
+.pub/
+.pub-cache/
+/build/
+**/doc/api/
+**/ios/Flutter/.last_build_id
+
+# Symbolication & Obfuscation
+app.*.symbols
+app.*.map.json
+
+# Android Studio / IntelliJ
+*.iml
+*.ipr
+*.iws
+.idea/
+
+# Visual Studio Code
+.vscode/
+
+# Android
+android/app/debug
+android/app/profile
+android/app/release
+android/key.properties
+android/local.properties
+android/.gradle/
+android/captures/
+
+# iOS / macOS
+**/ios/**/Generated.xcconfig
+**/ios/**/flutter_export_environment.sh
+**/ios/**/Flutter.framework
+**/ios/**/Flutter.podspec
+**/ios/Pods/
+**/ios/.symlinks/
+**/ios/Flutter/App.framework
+**/ios/Flutter/Flutter.framework
+**/ios/Flutter/flutter_assets/
+**/ios/ServiceDefinitions.json
+**/ios/Runner/GeneratedPluginRegistrant.*
+**/macos/Flutter/ephemeral/
+**/macos/Pods/
+**/macos/.symlinks/
+
+# Windows
+windows/flutter/ephemeral/
+windows/CMakeLists.txt.user
+
+# Linux
+linux/flutter/ephemeral/
+
+# Web
+lib/generated_plugin_registrant.dart
+
+# Keystores & Certificates (Sensitive)
+*.jks
+*.keystore
+*.p12
+*.pfx
+*.cer
+*.mobileprovision
+
+# Test coverage
+coverage/
+
+# Miscellaneous / OS files
+*.class
+*.log
+*.pyc
+*.swp
+.DS_Store
+Thumbs.db
+
+# Agents / Local Documentation
+.agents/
