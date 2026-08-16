@@ -5,32 +5,40 @@ import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:sensortech/data/models/ppe_event_model.dart';
+import 'package:sensortech/data/models/camera_model.dart';
 import 'package:sensortech/data/services/ppe_service.dart';
+import 'package:sensortech/data/services/camera_service.dart';
 import 'package:sensortech/features/auth/auth_controller.dart';
 
 class ValaViewModel extends ChangeNotifier {
   final PpeService _ppeService;
+  final CameraService _cameraService;
   final AuthController _auth;
 
   ValaViewModel({
     required PpeService ppeService,
+    required CameraService cameraService,
     required AuthController auth,
   })  : _ppeService = ppeService,
+        _cameraService = cameraService,
         _auth = auth {
     final now = DateTime.now();
     selectedStartDate = now.subtract(const Duration(days: 6));
     selectedEndDate = now;
     selectedEpi = 'presenca_vala';
+    loadCameras();
     loadEvents();
   }
 
   // ─── State ──────────────────────────────────────────────────────────────────
   bool isLoading = false;
+  bool isLoadingCameras = false;
   bool isDownloading = false;
   String? errorMessage;
   String? successMessage;
 
   List<PpeEvent> events = [];
+  List<Camera> cameras = [];
   int currentPage = 1;
   bool hasNextPage = true;
 
@@ -148,26 +156,56 @@ class ValaViewModel extends ChangeNotifier {
     }
   }
 
+  Future<void> loadCameras() async {
+    final cId = clientId;
+    if (cId == null) return;
+
+    isLoadingCameras = true;
+    notifyListeners();
+
+    try {
+      final list = await _cameraService.getCamerasByClient(cId);
+      list.sort((a, b) => a.id.compareTo(b.id));
+      cameras = list;
+    } catch (e) {
+      debugPrint('[ValaViewModel] Error loading cameras: $e');
+      cameras = [];
+    } finally {
+      isLoadingCameras = false;
+      notifyListeners();
+    }
+  }
+
   void setDateRange(DateTime start, DateTime end) {
     selectedStartDate = start;
     selectedEndDate = end;
-    loadEvents(page: 1);
+    notifyListeners();
   }
 
   void setTimes(String? start, String? end) {
     startTime = start;
     endTime = end;
-    loadEvents(page: 1);
+    notifyListeners();
   }
 
   void setEpiFilter(String? epi) {
     selectedEpi = (epi == null || epi.isEmpty) ? 'presenca_vala' : epi;
-    loadEvents(page: 1);
+    notifyListeners();
   }
 
-  void setCameraId(int? cameraId) {
+  void setSelectedCamera(int? cameraId) {
     selectedCameraId = cameraId;
-    loadEvents(page: 1);
+    notifyListeners();
+  }
+
+  String getCameraHintText() {
+    if (isLoadingCameras) return 'Carregando câmeras...';
+    if (cameras.isEmpty) return 'Nenhuma câmera encontrada';
+    if (selectedCameraId == null) return 'Todas as Câmeras';
+    final camera = cameras.where((c) => c.id == selectedCameraId).firstOrNull;
+    return camera != null && camera.nomeCamera.isNotEmpty
+        ? '${camera.id} - ${camera.nomeCamera}'
+        : 'Câmera $selectedCameraId';
   }
 
   void clearFilters() {

@@ -7,6 +7,7 @@ import 'package:sensortech/features/auth/login_page.dart';
 import 'package:sensortech/features/home/homepage.dart';
 import 'package:sensortech/features/alertas/alertas_page.dart';
 import 'package:sensortech/features/vala/vala_page.dart';
+import 'package:sensortech/features/camera_vms/camera_vms_grade_page.dart';
 // import 'package:sensortech/features/notifications/notifications_screen.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -30,16 +31,18 @@ class AppDrawer extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // 1. Logo da empresa em cima
-                      Image.asset(
-                        logoSensor,
-                        height: 34,
-                        fit: BoxFit.contain,
-                        errorBuilder: (context, error, stackTrace) =>
-                            const Icon(Icons.shield,
-                                size: 34, color: kPaletteDeepBlue),
+                      // 1. Logo da empresa centralizada no topo
+                      Center(
+                        child: Image.asset(
+                          logoSensor,
+                          height: 36,
+                          fit: BoxFit.contain,
+                          errorBuilder: (context, error, stackTrace) =>
+                              const Icon(Icons.shield,
+                                  size: 36, color: kPaletteDeepBlue),
+                        ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 18),
 
                       // 2. Avatar fictício com Nome e Empresa ao lado
                       Row(
@@ -108,6 +111,21 @@ class AppDrawer extends StatelessWidget {
                           );
                         },
                       ),
+                      if (authController.hasVms)
+                        ListTile(
+                          leading: const Icon(Icons.videocam,
+                              color: kPaletteDeepBlue),
+                          title: const Text('Câmera VMS'),
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) =>
+                                      const CameraVmsGradePage()),
+                            );
+                          },
+                        ),
                       if (authController.hasCentralAlertas)
                         ListTile(
                           leading: const Icon(Icons.notifications_active,

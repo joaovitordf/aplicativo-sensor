@@ -10,6 +10,8 @@ import 'package:sensortech/features/vala/vala_viewmodel.dart';
 import 'package:sensortech/shared/widgets/app_bar.dart';
 import 'package:sensortech/shared/widgets/app_drawer.dart';
 import 'package:sensortech/shared/widgets/date_picker_dialog.dart';
+import 'package:sensortech/data/services/camera_service.dart';
+import 'package:sensortech/shared/widgets/searchable_dropdown.dart';
 import 'package:sensortech/features/home/homepage.dart';
 
 class ValaPage extends StatelessWidget {
@@ -20,6 +22,7 @@ class ValaPage extends StatelessWidget {
     return ChangeNotifierProvider(
       create: (context) => ValaViewModel(
         ppeService: Provider.of<PpeService>(context, listen: false),
+        cameraService: Provider.of<CameraService>(context, listen: false),
         auth: Provider.of<AuthController>(context, listen: false),
       ),
       child: const _ValaView(),
@@ -148,12 +151,15 @@ class _ValaView extends StatelessWidget {
       ),
       child: Column(
         children: [
+          // Row 1: Date Range
           Row(
             children: [
-              // Date picker button
+              const Icon(Icons.calendar_month,
+                  size: 22, color: kPalettePrimaryDark),
+              const SizedBox(width: 10),
               Expanded(
-                child: OutlinedButton.icon(
-                  onPressed: () async {
+                child: InkWell(
+                  onTap: () async {
                     final range = await DatePickerCalendarDialog.showRange(
                       context: context,
                       title: 'Selecione o Período',
@@ -164,56 +170,120 @@ class _ValaView extends StatelessWidget {
                       viewModel.setDateRange(range.start, range.end);
                     }
                   },
-                  icon: const Icon(Icons.calendar_today, size: 16, color: kPalettePrimaryDark),
-                  label: Text(
-                    '$startDateStr - $endDateStr',
-                    style: const TextStyle(fontSize: 13, color: Colors.black87),
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                  style: OutlinedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                    side: const BorderSide(color: kPaletteLightGray),
-                    shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 12, vertical: 10),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
                       borderRadius: BorderRadius.circular(8),
+                      border: Border.all(color: kPaletteLightGray),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        Expanded(
+                          child: Text(
+                            '$startDateStr - $endDateStr',
+                            style: const TextStyle(
+                                fontSize: 13.5, color: Colors.black87),
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ),
+                        const Icon(
+                          Icons.keyboard_arrow_down,
+                          color: kPalettePrimaryDark,
+                          size: 20,
+                        ),
+                      ],
                     ),
                   ),
                 ),
               ),
-              const SizedBox(width: 8),
-              // Reset filters button
-              IconButton(
-                icon: const Icon(Icons.refresh, color: kPalettePrimaryDark),
-                tooltip: 'Redefinir filtros',
-                onPressed: viewModel.clearFilters,
+            ],
+          ),
+          const SizedBox(height: 8),
+
+          // Row 2: Camera Filter
+          Row(
+            children: [
+              const Icon(Icons.videocam,
+                  size: 22, color: kPalettePrimaryDark),
+              const SizedBox(width: 10),
+              Expanded(
+                child: SearchableDropdown<int?>(
+                  hint: viewModel.getCameraHintText(),
+                  value: viewModel.selectedCameraId,
+                  items: [
+                    const SearchableDropdownItem(
+                      value: null,
+                      label: 'Todas as Câmeras',
+                    ),
+                    ...viewModel.cameras.map((c) => SearchableDropdownItem(
+                          value: c.id,
+                          label: '${c.id} - ${c.nomeCamera}',
+                        )),
+                  ],
+                  onChanged: viewModel.isLoadingCameras
+                      ? null
+                      : viewModel.setSelectedCamera,
+                ),
               ),
             ],
           ),
           const SizedBox(height: 8),
-          // Vala / Escora Filter
+
+          // Row 3: Vala / Escora Filter
           Row(
             children: [
+              const Icon(Icons.landscape,
+                  size: 22, color: kPalettePrimaryDark),
+              const SizedBox(width: 10),
               Expanded(
-                child: DropdownButtonFormField<String?>(
-                  initialValue: viewModel.selectedEpi,
-                  isExpanded: true,
-                  decoration: InputDecoration(
-                    labelText: 'Tipo de Detecção',
-                    labelStyle: const TextStyle(fontSize: 12, color: kPalettePrimaryDark),
-                    contentPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                    border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(8),
-                      borderSide: const BorderSide(color: kPaletteLightGray),
-                    ),
-                  ),
+                child: SearchableDropdown<String?>(
+                  hint: 'Tipo de Detecção',
+                  value: viewModel.selectedEpi,
                   items: const [
-                    DropdownMenuItem(value: 'presenca_vala', child: Text('Presença de Vala')),
-                    DropdownMenuItem(value: 'presenca_escora', child: Text('Presença de Escora')),
-                    DropdownMenuItem(value: 'todas', child: Text('Todas (Vala e Escora)')),
+                    SearchableDropdownItem(
+                        value: 'presenca_vala', label: 'Presença de Vala'),
+                    SearchableDropdownItem(
+                        value: 'presenca_escora', label: 'Presença de Escora'),
+                    SearchableDropdownItem(
+                        value: 'todas', label: 'Todas (Vala e Escora)'),
                   ],
                   onChanged: (val) => viewModel.setEpiFilter(val),
                 ),
               ),
             ],
+          ),
+          const SizedBox(height: 10),
+
+          // Search button
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: viewModel.isLoading
+                  ? null
+                  : () => viewModel.loadEvents(page: 1),
+              icon: Icon(
+                viewModel.isLoading ? Icons.hourglass_empty : Icons.search,
+                size: 18,
+              ),
+              label: Text(
+                viewModel.isLoading ? 'Buscando...' : 'Buscar',
+                style:
+                    const TextStyle(fontSize: 15, fontWeight: FontWeight.bold),
+              ),
+              style: ElevatedButton.styleFrom(
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                backgroundColor: kBrandBlue,
+                foregroundColor: Colors.white,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                elevation: 1,
+              ),
+            ),
           ),
         ],
       ),

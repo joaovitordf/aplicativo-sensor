@@ -5,6 +5,7 @@ import 'package:sensortech/core/auth_extensions.dart';
 import 'package:sensortech/features/auth/auth_controller.dart';
 import 'package:sensortech/features/alertas/alertas_page.dart';
 import 'package:sensortech/features/vala/vala_page.dart';
+import 'package:sensortech/features/camera_vms/camera_vms_grade_page.dart';
 // import 'package:sensortech/features/notifications/notifications_screen.dart';
 import 'package:sensortech/shared/widgets/app_bar.dart';
 import 'package:sensortech/shared/widgets/app_drawer.dart';
@@ -45,6 +46,17 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                           const SizedBox(height: 16),
+
+                          if (auth.hasVms) ...[
+                            _buildMenuCard(
+                              context,
+                              'Câmera VMS',
+                              'Visualização ao vivo e gravações das câmeras',
+                              const CameraVmsGradePage(),
+                              Icons.videocam,
+                            ),
+                            const SizedBox(height: 12),
+                          ],
 
                           if (auth.hasCentralAlertas) ...[
                             _buildMenuCard(

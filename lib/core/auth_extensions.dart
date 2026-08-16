@@ -16,6 +16,9 @@ extension AuthHelpers on AuthController {
   bool get hasSaneamento =>
       hasTab('saneamento') || hasTab('valas') || hasTab('alertas') || hasTab('galeria') || isCliente || isAdmin;
 
+  /// Whether the user can access Câmera VMS
+  bool get hasVms => hasTab('vms');
+
   /// Whether the user is an admin or client
   bool get isCliente => role.toLowerCase() == 'cliente';
   bool get isAdmin => role.toLowerCase().contains('admin');

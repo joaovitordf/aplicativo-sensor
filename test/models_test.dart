@@ -1,14 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sensortech/data/models/auth_model.dart';
 import 'package:sensortech/data/models/ppe_event_model.dart';
+import 'package:sensortech/data/models/camera_model.dart';
+import 'package:sensortech/data/models/recording_model.dart';
 
 void main() {
   group('AuthModel Tests', () {
     test('Parse LoginResponse correctly from real API JSON sample', () {
       final sampleJson = {
         "allowed_tabs": ["galeria", "alertas", "dashboard", "vms"],
-        "client_name": "BBL",
-        "token": "NPZPhmv-sp66rcFxOOR_s3Oe8jocq1eaWhR7hgIPhNo",
+        "client_name": "Cliente Teste",
+        "token": "mock_token_abc123_xyz",
         "user": {
           "active": 1,
           "allowed_tabs": "[\"galeria\", \"alertas\", \"dashboard\", \"vms\"]",
@@ -26,8 +28,8 @@ void main() {
 
       final response = LoginResponse.fromJson(sampleJson);
 
-      expect(response.token, "NPZPhmv-sp66rcFxOOR_s3Oe8jocq1eaWhR7hgIPhNo");
-      expect(response.clientName, "BBL");
+      expect(response.token, "mock_token_abc123_xyz");
+      expect(response.clientName, "Cliente Teste");
       expect(response.allowedTabs, ["galeria", "alertas", "dashboard", "vms"]);
       expect(response.user.id, 11);
       expect(response.user.clientId, 12);
@@ -125,4 +127,71 @@ void main() {
       expect(event7.translatedMissingPpe, 'Sem Capacete, Sem Luvas, Sem Colete');
     });
   });
+
+  group('CameraModel Tests', () {
+    test('Parse Camera correctly from real API JSON sample', () {
+      final sampleJson = {
+        "NomeCamera": "BBLENG - CAM-1A2 - ENG7H46 - EQUIPE6 - CAM02 - 1",
+        "agent_enabled": 1,
+        "client_id": 8,
+        "conf_min": 0.6,
+        "conformity_interval": 30,
+        "cooldown_min": 5,
+        "created": "2026-07-09 23:22:44",
+        "display_classes": "{\"helmet\": 0, \"no_helmet\": 1}",
+        "group_id": null,
+        "id": "45",
+        "idCameraP2p": null,
+        "idCliente": "49",
+        "last_seen": null,
+        "linkHLS": "http://streamserver.example.com:8888/8/45/index.m3u8",
+        "linkcamera": "rtsp://admin:123456@192.168.1.100:554/stream",
+        "Tipoconexao": 1,
+        "gravar": 1
+      };
+
+      final camera = Camera.fromJson(sampleJson);
+
+      expect(camera.id, 45);
+      expect(camera.nomeCamera, "BBLENG - CAM-1A2 - ENG7H46 - EQUIPE6 - CAM02 - 1");
+      expect(camera.idCliente, 49);
+      expect(camera.linkHLS, "http://streamserver.example.com:8888/8/45/index.m3u8");
+      expect(camera.linkcamera, "rtsp://admin:123456@192.168.1.100:554/stream");
+      expect(camera.tipoConexao, 1);
+      expect(camera.gravar, 1);
+      expect(camera.hasHLSStream, true);
+      expect(camera.hasRTSPStream, true);
+      expect(camera.vmsPathName, "49/45");
+      expect(camera.confMin, 0.6);
+    });
+  });
+
+  group('RecordingModel Tests', () {
+    test('Parse RecordingSegment with timezone offset without shifting wall-clock time', () {
+      final sample = {
+        'start': '2026-08-15T14:46:30-03:00'
+      };
+
+      final segment = RecordingSegment.fromJson(sample);
+
+      expect(segment.timeString, '14:46:30');
+      expect(segment.date, DateTime(2026, 8, 15));
+    });
+
+    test('Recording group segments by date', () {
+      final recording = Recording(
+        name: '8/45',
+        segments: [
+          RecordingSegment(start: DateTime(2026, 8, 14, 10, 0, 0)),
+          RecordingSegment(start: DateTime(2026, 8, 14, 11, 0, 0)),
+          RecordingSegment(start: DateTime(2026, 8, 15, 14, 30, 0)),
+        ],
+      );
+
+      expect(recording.recordingDates.length, 2);
+      expect(recording.getSegmentsForDate(DateTime(2026, 8, 14)).length, 2);
+      expect(recording.getSegmentsForDate(DateTime(2026, 8, 15)).length, 1);
+    });
+  });
 }
+

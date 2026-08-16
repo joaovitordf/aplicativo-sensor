@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:provider/provider.dart';
 import 'package:flutter_dotenv/flutter_dotenv.dart';
 import 'package:dio/dio.dart';
@@ -7,6 +8,8 @@ import 'package:sensortech/features/home/homepage.dart';
 import 'package:sensortech/features/auth/login_page.dart';
 import 'package:sensortech/features/auth/auth_controller.dart';
 import 'package:sensortech/data/services/ppe_service.dart';
+import 'package:sensortech/data/services/camera_service.dart';
+import 'package:sensortech/data/services/vms_service.dart';
 import 'package:sensortech/features/notifications/notification_controller.dart';
 
 Future<void> main() async {
@@ -34,6 +37,14 @@ class MyApp extends StatelessWidget {
           update: (_, auth, prev) =>
               auth.dio != null ? PpeService(auth.dio!) : prev ?? PpeService(Dio()),
         ),
+        ProxyProvider<AuthController, CameraService>(
+          update: (_, auth, prev) =>
+              auth.dio != null ? CameraService(auth.dio!) : prev ?? CameraService(Dio()),
+        ),
+        ProxyProvider<AuthController, VmsService>(
+          update: (_, auth, prev) =>
+              auth.dio != null ? VmsService(auth.dio!) : prev ?? VmsService(Dio()),
+        ),
         ChangeNotifierProxyProvider2<AuthController, PpeService,
             NotificationController>(
           create: (context) => NotificationController(
@@ -47,6 +58,15 @@ class MyApp extends StatelessWidget {
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         title: 'SensorEPI Remoto',
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('pt', 'BR'),
+          Locale('en', 'US'),
+        ],
         theme: ThemeData(
           colorScheme: ColorScheme.fromSeed(seedColor: kPaletteDeepBlue),
           useMaterial3: true,

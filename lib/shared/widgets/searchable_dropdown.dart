@@ -2,16 +2,18 @@ import 'package:flutter/material.dart';
 import 'package:sensortech/core/constants.dart';
 
 class SearchableDropdown<T> extends StatefulWidget {
-  final String label;
+  final String? label;
   final String hint;
+  final IconData? prefixIcon;
   final T? value;
   final List<SearchableDropdownItem<T>> items;
   final void Function(T?)? onChanged;
 
   const SearchableDropdown({
     super.key,
-    required this.label,
+    this.label,
     required this.hint,
+    this.prefixIcon,
     required this.items,
     this.value,
     this.onChanged,
@@ -27,7 +29,7 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
       context: context,
       builder: (context) {
         return _SearchDialog<T>(
-          title: widget.label,
+          title: widget.label ?? widget.hint,
           items: widget.items,
           selectedValue: widget.value,
           onSelected: (val) {
@@ -47,21 +49,24 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
+      mainAxisSize: MainAxisSize.min,
       children: [
-        Text(
-          widget.label,
-          style: const TextStyle(
-            fontSize: 14,
-            fontWeight: FontWeight.w600,
-            color: kPalettePrimaryDark,
+        if (widget.label != null && widget.label!.isNotEmpty) ...[
+          Text(
+            widget.label!,
+            style: const TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.w600,
+              color: kPalettePrimaryDark,
+            ),
           ),
-        ),
-        const SizedBox(height: 8),
+          const SizedBox(height: 6),
+        ],
         InkWell(
           onTap: widget.onChanged != null ? _openSearchDialog : null,
           borderRadius: BorderRadius.circular(8),
           child: Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               color:
                   widget.onChanged != null ? Colors.white : Colors.grey.shade100,
@@ -69,22 +74,33 @@ class _SearchableDropdownState<T> extends State<SearchableDropdown<T>> {
               border: Border.all(color: kPaletteLightGray),
             ),
             child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
+                if (widget.prefixIcon != null) ...[
+                  Icon(
+                    widget.prefixIcon,
+                    size: 18,
+                    color: kPalettePrimaryDark,
+                  ),
+                  const SizedBox(width: 8),
+                ],
                 Expanded(
                   child: Text(
                     selectedItem?.label ?? widget.hint,
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: TextStyle(
-                      fontSize: 16,
-                      color:
-                          selectedItem != null ? Colors.black87 : Colors.grey[600],
+                      fontSize: 13.5,
+                      color: selectedItem != null
+                          ? Colors.black87
+                          : Colors.grey[600],
                     ),
                   ),
                 ),
-                const Icon(Icons.keyboard_arrow_down,
-                    color: kPalettePrimaryDark),
+                const Icon(
+                  Icons.keyboard_arrow_down,
+                  color: kPalettePrimaryDark,
+                  size: 20,
+                ),
               ],
             ),
           ),
