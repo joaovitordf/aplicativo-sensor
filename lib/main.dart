@@ -10,6 +10,9 @@ import 'package:sensortech/features/auth/auth_controller.dart';
 import 'package:sensortech/data/services/ppe_service.dart';
 import 'package:sensortech/data/services/camera_service.dart';
 import 'package:sensortech/data/services/vms_service.dart';
+import 'package:sensortech/data/services/equipamento_iot_service.dart';
+import 'package:sensortech/data/services/cliente_service.dart';
+import 'package:sensortech/data/services/solution_service.dart';
 import 'package:sensortech/features/notifications/notification_controller.dart';
 
 Future<void> main() async {
@@ -44,6 +47,24 @@ class MyApp extends StatelessWidget {
         ProxyProvider<AuthController, VmsService>(
           update: (_, auth, prev) =>
               auth.dio != null ? VmsService(auth.dio!) : prev ?? VmsService(Dio()),
+        ),
+        ProxyProvider<AuthController, EquipamentoIotService>(
+          update: (_, auth, prev) =>
+              auth.iotDio != null
+                  ? EquipamentoIotService(auth.iotDio!)
+                  : prev ?? EquipamentoIotService(Dio()),
+        ),
+        ProxyProvider<AuthController, ClienteService>(
+          update: (_, auth, prev) =>
+              auth.iotDio != null
+                  ? ClienteService(auth.iotDio!)
+                  : prev ?? ClienteService(Dio()),
+        ),
+        ProxyProvider<AuthController, SolutionService>(
+          update: (_, auth, prev) =>
+              auth.iotDio != null
+                  ? SolutionService(auth.iotDio!)
+                  : prev ?? SolutionService(Dio()),
         ),
         ChangeNotifierProxyProvider2<AuthController, PpeService,
             NotificationController>(

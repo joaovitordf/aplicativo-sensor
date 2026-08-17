@@ -3,6 +3,9 @@ import 'package:sensortech/data/models/auth_model.dart';
 import 'package:sensortech/data/models/ppe_event_model.dart';
 import 'package:sensortech/data/models/camera_model.dart';
 import 'package:sensortech/data/models/recording_model.dart';
+import 'package:sensortech/data/models/equipamento_iot_model.dart';
+import 'package:sensortech/data/models/solution_model.dart';
+import 'package:sensortech/data/models/cliente_detailed_model.dart';
 
 void main() {
   group('AuthModel Tests', () {
@@ -196,5 +199,87 @@ void main() {
       expect(recording.getSegmentsForDate(DateTime(2026, 8, 15)).length, 1);
     });
   });
+
+  group('EquipamentoIotModel Tests', () {
+    test('Parse EquipamentoIot correctly from JSON sample', () {
+      final sample = {
+        "id": 12,
+        "nomeEquipamento": "Raspberry PI - Posto 01",
+        "enderecoInstalacao": "Canteiro Central",
+        "modeloEquipamento": "Raspberry Pi 4",
+        "localizacao": "Setor A",
+        "ipEquipamento": "192.168.1.50",
+        "tipoConexao": 1,
+        "idCliente": 8,
+        "dataHora": "2026-08-01 10:00:00",
+        "enabled": 1,
+        "idSolucoes": [1, 2],
+      };
+
+      final eq = EquipamentoIot.fromJson(sample);
+
+      expect(eq.id, 12);
+      expect(eq.nomeEquipamento, "Raspberry PI - Posto 01");
+      expect(eq.enderecoInstalacao, "Canteiro Central");
+      expect(eq.modeloEquipamento, "Raspberry Pi 4");
+      expect(eq.ipEquipamento, "192.168.1.50");
+      expect(eq.idCliente, 8);
+      expect(eq.isAtivo, true);
+      expect(eq.idSolucoes, [1, 2]);
+    });
+  });
+
+  group('SolutionModel Tests', () {
+    test('Parse Solution correctly from JSON sample', () {
+      final sample = {
+        "id": 1,
+        "label": "EPI - Segurança do Trabalho",
+        "usaIA": 1,
+        "idModeloIA": 5,
+        "modelo": {
+          "id": 5,
+          "nomeObjeto": "EPI Detecção",
+          "modeloVersao": "1.0",
+          "status": "ativo",
+          "arquivoNome": "epi.pt",
+          "classes": [
+            {"id": 1, "className": "helmet", "status": "ativo", "classIndex": 0},
+            {"id": 2, "className": "vest", "status": "ativo", "classIndex": 1}
+          ]
+        }
+      };
+
+      final sol = Solution.fromJson(sample);
+
+      expect(sol.id, 1);
+      expect(sol.label, "EPI - Segurança do Trabalho");
+      expect(sol.usesAI, true);
+      expect(sol.modelo?.classes.length, 2);
+      expect(sol.modelo?.classes[0].className, "helmet");
+    });
+  });
+
+  group('ClienteDetailedModel Tests', () {
+    test('Parse ClienteDetailed correctly from JSON sample', () {
+      final sample = {
+        "id": 8,
+        "cnpj": "12.345.678/0001-90",
+        "razaoSocial": "Construtora Alfa S.A.",
+        "nomeFantasia": "Alfa Construções",
+        "telefone": "(11) 98888-7777",
+        "email": "contato@alfa.com.br",
+        "solucoes": [1, 3]
+      };
+
+      final cli = ClienteDetailed.fromJson(sample);
+
+      expect(cli.id, 8);
+      expect(cli.cnpj, "12.345.678/0001-90");
+      expect(cli.razaoSocial, "Construtora Alfa S.A.");
+      expect(cli.displayName, "Alfa Construções");
+      expect(cli.solucoes, [1, 3]);
+    });
+  });
 }
+
 

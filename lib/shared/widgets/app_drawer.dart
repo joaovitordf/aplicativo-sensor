@@ -8,6 +8,7 @@ import 'package:sensortech/features/home/homepage.dart';
 import 'package:sensortech/features/alertas/alertas_page.dart';
 import 'package:sensortech/features/vala/vala_page.dart';
 import 'package:sensortech/features/camera_vms/camera_vms_grade_page.dart';
+import 'package:sensortech/features/equipamentos_iot/equipamentos_iot_page.dart';
 // import 'package:sensortech/features/notifications/notifications_screen.dart';
 
 class AppDrawer extends StatelessWidget {
@@ -151,6 +152,21 @@ class AppDrawer extends StatelessWidget {
                               context,
                               MaterialPageRoute(
                                   builder: (context) => const ValaPage()),
+                            );
+                          },
+                        ),
+                      if (authController.hasEquipamentosIot)
+                        ListTile(
+                          leading: const Icon(Icons.memory,
+                              color: kPaletteDeepBlue),
+                          title: const Text('Equipamentos IoT'),
+                          onTap: () {
+                            Navigator.pop(context);
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                  builder: (context) =>
+                                      const EquipamentosIotPage()),
                             );
                           },
                         ),

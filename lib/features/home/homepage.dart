@@ -6,6 +6,7 @@ import 'package:sensortech/features/auth/auth_controller.dart';
 import 'package:sensortech/features/alertas/alertas_page.dart';
 import 'package:sensortech/features/vala/vala_page.dart';
 import 'package:sensortech/features/camera_vms/camera_vms_grade_page.dart';
+import 'package:sensortech/features/equipamentos_iot/equipamentos_iot_page.dart';
 // import 'package:sensortech/features/notifications/notifications_screen.dart';
 import 'package:sensortech/shared/widgets/app_bar.dart';
 import 'package:sensortech/shared/widgets/app_drawer.dart';
@@ -76,6 +77,17 @@ class _HomePageState extends State<HomePage> {
                               'Monitoramento e detecção de valas e escoras',
                               const ValaPage(),
                               Icons.landscape,
+                            ),
+                            const SizedBox(height: 12),
+                          ],
+
+                          if (auth.hasEquipamentosIot) ...[
+                            _buildMenuCard(
+                              context,
+                              'Equipamentos IoT',
+                              'Gestão e monitoramento dos equipamentos IoT',
+                              const EquipamentosIotPage(),
+                              Icons.memory,
                             ),
                             const SizedBox(height: 12),
                           ],

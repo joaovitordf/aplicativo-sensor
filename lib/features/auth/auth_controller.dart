@@ -12,6 +12,7 @@ class AuthController extends ChangeNotifier {
 
   LoginResponse? _loginResponse;
   Dio? _dio;
+  Dio? _iotDio;
   AuthService? _authService;
   bool _isLoading = false;
   String? _errorMessage;
@@ -39,6 +40,7 @@ class AuthController extends ChangeNotifier {
   }
 
   Dio? get dio => _dio;
+  Dio? get iotDio => _iotDio;
   AuthService? get authService => _authService;
 
   AuthController() {
@@ -52,7 +54,9 @@ class AuthController extends ChangeNotifier {
 
   void _initializeDio() {
     final apiUrl = dotenv.env['API_URL'] ?? '';
-    debugPrint('[AuthController] Initializing Dio with base URL: $apiUrl');
+    final iotApiUrl = dotenv.env['API_IOT_URL'] ?? apiUrl;
+    debugPrint('[AuthController] Initializing Main Dio with base URL: $apiUrl');
+    debugPrint('[AuthController] Initializing IoT Dio with base URL: $iotApiUrl');
 
     _dio = Dio(BaseOptions(
       baseUrl: apiUrl,
@@ -64,26 +68,37 @@ class AuthController extends ChangeNotifier {
       },
     ));
 
-    // Interceptor to attach Bearer token to all outgoing requests
-    _dio!.interceptors.add(
-      InterceptorsWrapper(
-        onRequest: (options, handler) {
-          if (_loginResponse?.token != null &&
-              _loginResponse!.token.isNotEmpty) {
-            options.headers['Authorization'] =
-                'Bearer ${_loginResponse!.token}';
-          }
-          return handler.next(options);
-        },
-        onError: (DioException e, handler) {
-          if (e.response?.statusCode == 401) {
-            debugPrint('[AuthController] 401 Unauthorized detected - logging out');
-            logout();
-          }
-          return handler.next(e);
-        },
-      ),
+    _iotDio = Dio(BaseOptions(
+      baseUrl: iotApiUrl,
+      connectTimeout: const Duration(seconds: 30),
+      receiveTimeout: const Duration(seconds: 45),
+      headers: {
+        'Content-Type': 'application/json',
+        'Accept': 'application/json',
+      },
+    ));
+
+    // Shared interceptor to attach Bearer token to all outgoing requests
+    final authInterceptor = InterceptorsWrapper(
+      onRequest: (options, handler) {
+        if (_loginResponse?.token != null &&
+            _loginResponse!.token.isNotEmpty) {
+          options.headers['Authorization'] =
+              'Bearer ${_loginResponse!.token}';
+        }
+        return handler.next(options);
+      },
+      onError: (DioException e, handler) {
+        if (e.response?.statusCode == 401) {
+          debugPrint('[AuthController] 401 Unauthorized detected - logging out');
+          logout();
+        }
+        return handler.next(e);
+      },
     );
+
+    _dio!.interceptors.add(authInterceptor);
+    _iotDio!.interceptors.add(authInterceptor);
 
     // Logging interceptor in debug mode
     if (kDebugMode) {
@@ -95,6 +110,15 @@ class AuthController extends ChangeNotifier {
         responseBody: false,
         error: true,
         logPrint: (obj) => debugPrint('[DIO] $obj'),
+      ));
+      _iotDio!.interceptors.add(LogInterceptor(
+        request: true,
+        requestHeader: true,
+        requestBody: false,
+        responseHeader: false,
+        responseBody: false,
+        error: true,
+        logPrint: (obj) => debugPrint('[IOT-DIO] $obj'),
       ));
     }
 

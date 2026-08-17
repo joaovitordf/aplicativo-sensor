@@ -19,7 +19,19 @@ extension AuthHelpers on AuthController {
   /// Whether the user can access Câmera VMS
   bool get hasVms => hasTab('vms');
 
+  /// Whether the user can access Equipamentos IoT
+  bool get hasEquipamentosIot =>
+      hasTab('equipamentos') ||
+      hasTab('iot') ||
+      hasTab('equipamentosiot') ||
+      isAdmin ||
+      isCliente;
+
   /// Whether the user is an admin or client
   bool get isCliente => role.toLowerCase() == 'cliente';
   bool get isAdmin => role.toLowerCase().contains('admin');
+  bool get isSuperAdmin =>
+      role.toLowerCase() == 'superadmin' ||
+      role.toLowerCase() == 'admin' ||
+      role.toLowerCase() == 'super';
 }
