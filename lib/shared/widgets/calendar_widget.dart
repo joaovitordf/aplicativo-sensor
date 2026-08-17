@@ -83,11 +83,16 @@ class _CalendarWidgetState extends State<CalendarWidget> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        Text(
-          DateFormat('MMMM yyyy', 'pt_BR').format(_currentMonth).toUpperCase(),
-          style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        Expanded(
+          child: Text(
+            DateFormat('MMMM yyyy', 'pt_BR').format(_currentMonth).toUpperCase(),
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 15),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
         Row(
+          mainAxisSize: MainAxisSize.min,
           children: [
             IconButton(
               icon: const Icon(Icons.chevron_left),

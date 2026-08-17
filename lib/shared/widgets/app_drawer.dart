@@ -202,6 +202,8 @@ class AppDrawer extends StatelessWidget {
                       context: context,
                       builder: (ctx) {
                         return AlertDialog(
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12)),
                           title: const Text('Confirmar logout'),
                           content: const Text('Deseja realmente deslogar?'),
                           actions: [

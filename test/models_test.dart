@@ -198,6 +198,51 @@ void main() {
       expect(recording.getSegmentsForDate(DateTime(2026, 8, 14)).length, 2);
       expect(recording.getSegmentsForDate(DateTime(2026, 8, 15)).length, 1);
     });
+
+    test('Recording groups continuous 5-second chunks into unified sessions', () {
+      final recording = Recording(
+        name: '49/118',
+        segments: [
+          // Session 1: 02:30:00 to 02:30:15 (4 chunks of 5s)
+          RecordingSegment(start: DateTime(2026, 8, 16, 2, 30, 0)),
+          RecordingSegment(start: DateTime(2026, 8, 16, 2, 30, 5)),
+          RecordingSegment(start: DateTime(2026, 8, 16, 2, 30, 10)),
+          RecordingSegment(start: DateTime(2026, 8, 16, 2, 30, 15)),
+          // Gap of 2 hours
+          // Session 2: 04:30:00 to 04:30:05 (2 chunks)
+          RecordingSegment(start: DateTime(2026, 8, 16, 4, 30, 0)),
+          RecordingSegment(start: DateTime(2026, 8, 16, 4, 30, 5)),
+        ],
+      );
+
+      final grouped = recording.getGroupedSegmentsForDate(DateTime(2026, 8, 16));
+
+      expect(grouped.length, 2);
+
+      // Session 1 checks
+      expect(grouped[0].timeString, '02:30:00');
+      expect(grouped[0].durationSeconds, 25); // (15 - 0) + 10s = 25s
+      expect(grouped[0].formattedDuration, '25s');
+
+      // Session 2 checks
+      expect(grouped[1].timeString, '04:30:00');
+      expect(grouped[1].durationSeconds, 15);
+      expect(grouped[1].formattedDuration, '15s');
+    });
+
+    test('RecordingSegment duration formatting helper returns human-readable text', () {
+      final segShort = RecordingSegment(start: DateTime.now(), durationSeconds: 45);
+      expect(segShort.formattedDuration, '45s');
+
+      final segMins = RecordingSegment(start: DateTime.now(), durationSeconds: 650);
+      expect(segMins.formattedDuration, '10min 50s');
+
+      final segHours = RecordingSegment(start: DateTime.now(), durationSeconds: 3660);
+      expect(segHours.formattedDuration, '1h 1min');
+
+      final segExactHours = RecordingSegment(start: DateTime.now(), durationSeconds: 7200);
+      expect(segExactHours.formattedDuration, '2h');
+    });
   });
 
   group('EquipamentoIotModel Tests', () {

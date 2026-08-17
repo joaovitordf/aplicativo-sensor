@@ -185,44 +185,53 @@ class _NotificationItemCard extends StatelessWidget {
         return Dialog(
           backgroundColor: Colors.black,
           insetPadding: const EdgeInsets.all(12),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              AppBar(
-                backgroundColor: Colors.black,
-                title: Text(
-                  event.translatedMissingPpe,
-                  style: const TextStyle(color: Colors.white, fontSize: 16),
-                ),
-                leading: IconButton(
-                  icon: const Icon(Icons.close, color: Colors.white),
-                  onPressed: () => Navigator.pop(context),
-                ),
+          child: SafeArea(
+            child: ConstrainedBox(
+              constraints: BoxConstraints(
+                maxHeight: MediaQuery.sizeOf(context).height * 0.9,
               ),
-              Flexible(
-                child: Image.network(
-                  imageUrl,
-                  headers: token.isNotEmpty
-                      ? {'Authorization': 'Bearer $token'}
-                      : null,
-                  fit: BoxFit.contain,
-                  errorBuilder: (context, error, stackTrace) => const Center(
-                    child: Padding(
-                      padding: EdgeInsets.all(32.0),
-                      child: Text('Erro ao carregar imagem',
-                          style: TextStyle(color: Colors.white70)),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  AppBar(
+                    backgroundColor: Colors.black,
+                    title: Text(
+                      event.translatedMissingPpe,
+                      style: const TextStyle(color: Colors.white, fontSize: 16),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    leading: IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white),
+                      onPressed: () => Navigator.pop(context),
                     ),
                   ),
-                ),
+                  Flexible(
+                    child: Image.network(
+                      imageUrl,
+                      headers: token.isNotEmpty
+                          ? {'Authorization': 'Bearer $token'}
+                          : null,
+                      fit: BoxFit.contain,
+                      errorBuilder: (context, error, stackTrace) => const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(32.0),
+                          child: Text('Erro ao carregar imagem',
+                              style: TextStyle(color: Colors.white70)),
+                        ),
+                      ),
+                    ),
+                  ),
+                  Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: Text(
+                      event.displayDate,
+                      style: const TextStyle(color: Colors.white70, fontSize: 13),
+                    ),
+                  ),
+                ],
               ),
-              Padding(
-                padding: const EdgeInsets.all(12.0),
-                child: Text(
-                  event.displayDate,
-                  style: const TextStyle(color: Colors.white70, fontSize: 13),
-                ),
-              ),
-            ],
+            ),
           ),
         );
       },

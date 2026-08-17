@@ -32,6 +32,8 @@ class CustomAppBar extends StatelessWidget implements PreferredSizeWidget {
                 fontWeight: FontWeight.bold,
                 fontSize: 18,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             )
           : Consumer<AuthController>(
               builder: (context, auth, child) {

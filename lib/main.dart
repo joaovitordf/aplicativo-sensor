@@ -15,8 +15,17 @@ import 'package:sensortech/data/services/cliente_service.dart';
 import 'package:sensortech/data/services/solution_service.dart';
 import 'package:sensortech/features/notifications/notification_controller.dart';
 
+import 'package:intl/date_symbol_data_local.dart';
+
 Future<void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // Initialize Portuguese locale for date formatting globally
+  try {
+    await initializeDateFormatting('pt_BR', null);
+  } catch (e) {
+    debugPrint('Error initializing pt_BR locale: $e');
+  }
 
   // Load environment variables (.env)
   try {
@@ -78,7 +87,7 @@ class MyApp extends StatelessWidget {
       ],
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        title: 'SensorEPI Remoto',
+        title: 'SensorTech',
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,

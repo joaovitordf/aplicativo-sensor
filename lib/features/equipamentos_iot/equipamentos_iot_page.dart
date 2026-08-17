@@ -190,6 +190,8 @@ class _EquipamentosIotPageViewState extends State<_EquipamentosIotPageView> {
                 fontWeight: FontWeight.bold,
                 color: kPalettePrimaryDark,
               ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
           Container(
@@ -747,80 +749,82 @@ class _SireneConfirmationDialogState extends State<_SireneConfirmationDialog> {
         ),
       ),
       contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text(
-            'Tem certeza que deseja acionar a sirene?',
-            style: TextStyle(
-              fontSize: 15,
-              fontWeight: FontWeight.w600,
-              color: Color(0xFF1E293B),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text(
+              'Tem certeza que deseja acionar a sirene?',
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.w600,
+                color: Color(0xFF1E293B),
+              ),
             ),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(12),
-            decoration: BoxDecoration(
-              color: const Color(0xFFF8FAFC),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFE2E8F0)),
-            ),
-            child: Row(
-              children: [
-                const Icon(Icons.memory, size: 18, color: Color(0xFF455A64)),
-                const SizedBox(width: 8),
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        widget.equipamento.nomeEquipamento,
-                        style: const TextStyle(
-                          fontSize: 13,
-                          fontWeight: FontWeight.bold,
-                          color: Color(0xFF1E293B),
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(12),
+              decoration: BoxDecoration(
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFE2E8F0)),
+              ),
+              child: Row(
+                children: [
+                  const Icon(Icons.memory, size: 18, color: Color(0xFF455A64)),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          widget.equipamento.nomeEquipamento,
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Color(0xFF1E293B),
+                          ),
                         ),
-                      ),
-                      Text(
-                        'ID: #${widget.equipamento.id ?? '-'}',
-                        style: TextStyle(
-                          fontSize: 12,
-                          color: Colors.grey.shade600,
+                        Text(
+                          'ID: #${widget.equipamento.id ?? '-'}',
+                          style: TextStyle(
+                            fontSize: 12,
+                            color: Colors.grey.shade600,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          const SizedBox(height: 12),
-          Container(
-            padding: const EdgeInsets.all(10),
-            decoration: BoxDecoration(
-              color: const Color(0xFFFFF3E0),
-              borderRadius: BorderRadius.circular(8),
-              border: Border.all(color: const Color(0xFFFFCC80)),
-            ),
-            child: const Row(
-              children: [
-                Icon(Icons.info_outline, size: 16, color: Color(0xFFE65100)),
-                SizedBox(width: 8),
-                Expanded(
-                  child: Text(
-                    'Esta ação acionará a sirene do equipamento por 5 segundos.',
-                    style: TextStyle(
-                      fontSize: 12,
-                      color: Color(0xFFE65100),
+                      ],
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
-          ),
-        ],
+            const SizedBox(height: 12),
+            Container(
+              padding: const EdgeInsets.all(10),
+              decoration: BoxDecoration(
+                color: const Color(0xFFFFF3E0),
+                borderRadius: BorderRadius.circular(8),
+                border: Border.all(color: const Color(0xFFFFCC80)),
+              ),
+              child: const Row(
+                children: [
+                  Icon(Icons.info_outline, size: 16, color: Color(0xFFE65100)),
+                  SizedBox(width: 8),
+                  Expanded(
+                    child: Text(
+                      'Esta ação acionará a sirene do equipamento por 5 segundos.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Color(0xFFE65100),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
       ),
       actionsPadding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
       actions: [

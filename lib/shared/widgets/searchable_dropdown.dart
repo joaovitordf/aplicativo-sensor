@@ -159,34 +159,50 @@ class _SearchDialogState<T> extends State<_SearchDialog<T>> {
       return item.label.toLowerCase().contains(_searchQuery.toLowerCase());
     }).toList();
 
+    final screenHeight = MediaQuery.sizeOf(context).height;
+    final dialogMaxHeight = (screenHeight * 0.8).clamp(240.0, 520.0);
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Container(
-        constraints: const BoxConstraints(maxHeight: 500),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      child: ConstrainedBox(
+        constraints: BoxConstraints(maxHeight: dialogMaxHeight),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             Padding(
-              padding: const EdgeInsets.all(16.0),
+              padding: const EdgeInsets.fromLTRB(16.0, 16.0, 16.0, 8.0),
               child: Text(
                 widget.title,
                 style:
-                    const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    const TextStyle(fontSize: 17, fontWeight: FontWeight.bold),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ),
             Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16.0),
+              padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 4.0),
               child: TextField(
                 controller: _controller,
+                autofocus: false,
                 decoration: InputDecoration(
                   hintText: 'Pesquisar...',
-                  prefixIcon: const Icon(Icons.search),
+                  prefixIcon: const Icon(Icons.search, size: 20),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear, size: 18),
+                          onPressed: () {
+                            _controller.clear();
+                            setState(() => _searchQuery = '');
+                          },
+                        )
+                      : null,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(8),
                     borderSide: const BorderSide(color: kPaletteLightGray),
                   ),
                   contentPadding:
-                      const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                      const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
                 ),
                 onChanged: (val) {
                   setState(() {
@@ -195,27 +211,46 @@ class _SearchDialogState<T> extends State<_SearchDialog<T>> {
                 },
               ),
             ),
-            const SizedBox(height: 8),
+            const SizedBox(height: 4),
             Flexible(
-              child: ListView.builder(
-                shrinkWrap: true,
-                itemCount: filtered.length,
-                itemBuilder: (context, index) {
-                  final item = filtered[index];
-                  final isSelected = item.value == widget.selectedValue;
-                  return ListTile(
-                    title: Text(item.label),
-                    selected: isSelected,
-                    selectedColor: kPalettePrimaryDark,
-                    selectedTileColor:
-                        kPalettePrimaryDark.withValues(alpha: 0.1),
-                    onTap: () {
-                      widget.onSelected(item.value);
-                      Navigator.of(context).pop();
-                    },
-                  );
-                },
-              ),
+              child: filtered.isEmpty
+                  ? Padding(
+                      padding: const EdgeInsets.all(24.0),
+                      child: Text(
+                        'Nenhum item encontrado',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                    )
+                  : ListView.builder(
+                      shrinkWrap: true,
+                      itemCount: filtered.length,
+                      itemBuilder: (context, index) {
+                        final item = filtered[index];
+                        final isSelected = item.value == widget.selectedValue;
+                        return ListTile(
+                          dense: true,
+                          title: Text(
+                            item.label,
+                            style: TextStyle(
+                              fontWeight: isSelected
+                                  ? FontWeight.bold
+                                  : FontWeight.normal,
+                            ),
+                          ),
+                          selected: isSelected,
+                          selectedColor: kPalettePrimaryDark,
+                          selectedTileColor:
+                              kPalettePrimaryDark.withValues(alpha: 0.1),
+                          onTap: () {
+                            widget.onSelected(item.value);
+                            Navigator.of(context).pop();
+                          },
+                        );
+                      },
+                    ),
             ),
           ],
         ),

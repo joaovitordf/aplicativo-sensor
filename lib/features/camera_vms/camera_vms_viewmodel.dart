@@ -36,9 +36,11 @@ class CameraVmsViewModel extends ChangeNotifier {
   String? currentHlsUrl;
   String? currentSegmentUrl;
 
-  final List<int?> fallbackDurations = [null, 600, 300, 60];
+  final List<int?> fallbackDurations = [null, 600, 300];
 
   bool _thumbnailCaptured = false;
+  int _sessionId = 0;
+  bool _isTransitioningSegment = false;
 
   // ─── Initialization (from Grade) ──────────────────────────────────────────
   Future<void> loadForRecording(Recording recording) async {
@@ -177,6 +179,7 @@ class CameraVmsViewModel extends ChangeNotifier {
       Future.delayed(const Duration(seconds: 2), () {
         if (!_isDisposed &&
             url == currentHlsUrl &&
+            videoController != null &&
             videoController!.value.isInitialized) {
           _captureThumbnail(url);
         }
@@ -191,7 +194,7 @@ class CameraVmsViewModel extends ChangeNotifier {
           '[HLS] Error or Timeout loading stream (Attempt $attempt): $error');
       controller.dispose();
 
-      if (attempt < 3) {
+      if (attempt < 2) {
         Future.delayed(Duration(milliseconds: 1000 * (attempt + 1)), () {
           if (!_isDisposed && url == currentHlsUrl) {
             _initializeLiveStreamWithRetry(url, attempt + 1);
@@ -199,7 +202,7 @@ class CameraVmsViewModel extends ChangeNotifier {
         });
       } else {
         playerError =
-            'Erro ao carregar transmissão ao vivo (Timeout/Codec)';
+            'Transmissão ao vivo indisponível (câmera offline ou sem stream HLS)';
         notifyListeners();
       }
     });
@@ -208,11 +211,15 @@ class CameraVmsViewModel extends ChangeNotifier {
   // ─── Segment Playback ─────────────────────────────────────────────────────
   void playSegment(int index) {
     if (index < 0 || index >= segmentsForSelectedDate.length) return;
+    _sessionId++;
+    _isTransitioningSegment = false;
+    playerError = null;
     disposeVideoPlayer();
-    _initSegmentPlayback(index, 0);
+    _initSegmentPlayback(index, 0, _sessionId);
   }
 
-  void _initSegmentPlayback(int index, int fallbackLevel) {
+  void _initSegmentPlayback(int index, int fallbackLevel, int sessionId) {
+    if (_isDisposed || sessionId != _sessionId) return;
     if (fallbackLevel >= fallbackDurations.length) {
       playerError =
           'Erro ao carregar gravação. Tente selecionar outro segmento.';
@@ -224,54 +231,61 @@ class CameraVmsViewModel extends ChangeNotifier {
         ? segmentsForSelectedDate[index + 1]
         : null;
     final overrideDuration = fallbackDurations[fallbackLevel];
+    final format = (fallbackLevel > 0) ? 'mp4' : 'fmp4';
     final url = _vmsService.getSegmentUrl(
       cameraPath: selectedRecording!.name,
       segment: segment,
       nextSegment: nextSegment,
       overrideDuration: overrideDuration,
+      format: format,
     );
     currentSegmentUrl = url;
     currentHlsUrl = null;
-    _playSegmentWithRetry(index, url, 0, fallbackLevel);
+    _playSegmentWithRetry(index, url, 0, fallbackLevel, sessionId);
   }
 
   void _playSegmentWithRetry(
-      int index, String url, int attempt, int fallbackLevel) {
-    if (_isDisposed || url != currentSegmentUrl) return;
+      int index, String url, int attempt, int fallbackLevel, int sessionId) {
+    if (_isDisposed || sessionId != _sessionId || url != currentSegmentUrl) {
+      return;
+    }
 
     debugPrint(
-        '[Segment] Initializing segment (Fallback Level $fallbackLevel, Attempt $attempt): $url');
+        '[Segment] Initializing segment $index (Fallback Level $fallbackLevel, Attempt $attempt): $url');
     final controller = VideoPlayerController.networkUrl(Uri.parse(url));
 
     controller
         .initialize()
-        .timeout(const Duration(seconds: 4))
+        .timeout(const Duration(seconds: 10))
         .then((_) {
-      if (_isDisposed || url != currentSegmentUrl) {
+      if (_isDisposed || sessionId != _sessionId || url != currentSegmentUrl) {
         controller.dispose();
         return;
       }
 
-      videoController?.dispose();
+      disposeVideoPlayer();
 
       videoController = controller;
       currentSegmentIndex = index;
+      _isTransitioningSegment = false;
       videoController!.setPlaybackSpeed(playbackSpeed);
       videoController!.play();
       isPlaying = true;
       videoController!.addListener(_videoListener);
       notifyListeners();
 
-      // Capture thumbnail after a short delay
-      Future.delayed(const Duration(seconds: 1), () {
+      // Capture thumbnail after a safe delay if not already captured
+      Future.delayed(const Duration(seconds: 2), () {
         if (!_isDisposed &&
+            sessionId == _sessionId &&
             url == currentSegmentUrl &&
+            videoController != null &&
             videoController!.value.isInitialized) {
           _captureThumbnail(url);
         }
       });
     }).catchError((error) {
-      if (_isDisposed || url != currentSegmentUrl) {
+      if (_isDisposed || sessionId != _sessionId || url != currentSegmentUrl) {
         controller.dispose();
         return;
       }
@@ -280,19 +294,41 @@ class CameraVmsViewModel extends ChangeNotifier {
           '[Segment] Error or Timeout loading segment (Attempt $attempt): $error');
       controller.dispose();
 
-      // Switch to next fallback duration level
-      debugPrint(
-          '[Segment] Failed level $fallbackLevel. Switching to next fallback.');
-      _initSegmentPlayback(index, fallbackLevel + 1);
+      if (attempt < 2) {
+        Future.delayed(Duration(milliseconds: 800 * (attempt + 1)), () {
+          if (!_isDisposed && sessionId == _sessionId && url == currentSegmentUrl) {
+            _playSegmentWithRetry(index, url, attempt + 1, fallbackLevel, sessionId);
+          }
+        });
+      } else if (fallbackLevel + 1 < fallbackDurations.length) {
+        debugPrint(
+            '[Segment] Failed level $fallbackLevel. Switching to next fallback.');
+        _initSegmentPlayback(index, fallbackLevel + 1, sessionId);
+      } else {
+        playerError = 'Erro ao carregar gravação. Tente novamente.';
+        notifyListeners();
+      }
     });
   }
 
   void _videoListener() {
     if (_isDisposed || videoController == null) return;
-    final position = videoController!.value.position;
-    final duration = videoController!.value.duration;
-    if (position >= duration && duration.inSeconds > 0) {
-      if (currentSegmentIndex < segmentsForSelectedDate.length - 1) {
+    final value = videoController!.value;
+    if (value.hasError) {
+      debugPrint('[Segment] Video player error: ${value.errorDescription}');
+      return;
+    }
+
+    final position = value.position;
+    final duration = value.duration;
+
+    // Check if video reached the end
+    if (duration > Duration.zero &&
+        position >= duration &&
+        !_isTransitioningSegment) {
+      _isTransitioningSegment = true;
+      if (currentSegmentIndex >= 0 &&
+          currentSegmentIndex < segmentsForSelectedDate.length - 1) {
         playSegment(currentSegmentIndex + 1);
       } else {
         if (isPlaying) {
@@ -300,25 +336,32 @@ class CameraVmsViewModel extends ChangeNotifier {
           notifyListeners();
         }
       }
-    } else {
-      final nowPlaying = videoController!.value.isPlaying;
-      if (nowPlaying != isPlaying) {
-        isPlaying = nowPlaying;
-        notifyListeners();
-      }
+      return;
+    }
+
+    final nowPlaying = value.isPlaying;
+    if (nowPlaying != isPlaying) {
+      isPlaying = nowPlaying;
+      notifyListeners();
     }
   }
 
   // ─── Thumbnail Capture ────────────────────────────────────────────────────
   Future<void> _captureThumbnail(String originalUrl) async {
     if (_thumbnailCaptured || selectedRecording == null || _isDisposed) return;
-    _thumbnailCaptured = true;
 
     try {
       final cameraInfo = selectedRecording!.cameraInfo;
       final id = cameraInfo?.id.toString() ??
           selectedRecording!.name.replaceAll('/', '_');
 
+      final prefs = await SharedPreferences.getInstance();
+      if (prefs.containsKey('thumb_$id')) {
+        _thumbnailCaptured = true;
+        return;
+      }
+
+      _thumbnailCaptured = true;
       final appDir = await getApplicationDocumentsDirectory();
 
       String targetUrl = originalUrl;
@@ -332,7 +375,7 @@ class CameraVmsViewModel extends ChangeNotifier {
           cameraPath: selectedRecording!.name,
           segment: lastSegment,
           nextSegment: null,
-          overrideDuration: null,
+          overrideDuration: 10,
         );
         debugPrint(
             '[VMS] Swapped .m3u8 for static segment URL for thumbnail: $targetUrl');
@@ -350,7 +393,6 @@ class CameraVmsViewModel extends ChangeNotifier {
 
       if (path.isNotEmpty) {
         debugPrint('[VMS] Thumbnail captured at $path');
-        final prefs = await SharedPreferences.getInstance();
         await prefs.setString('thumb_$id', path);
       } else {
         _thumbnailCaptured = false;

@@ -127,15 +127,26 @@ class _DatePickerCalendarDialogState extends State<DatePickerCalendarDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final maxHeight = MediaQuery.sizeOf(context).height * 0.9;
+
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
       child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 360),
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: _isLocaleReady
-              ? _buildContent()
-              : const Center(child: CircularProgressIndicator()),
+        constraints: BoxConstraints(
+          maxWidth: 360,
+          maxHeight: maxHeight,
+        ),
+        child: SingleChildScrollView(
+          child: Padding(
+            padding: const EdgeInsets.all(16),
+            child: _isLocaleReady
+                ? _buildContent()
+                : const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 40),
+                    child: Center(child: CircularProgressIndicator()),
+                  ),
+          ),
         ),
       ),
     );

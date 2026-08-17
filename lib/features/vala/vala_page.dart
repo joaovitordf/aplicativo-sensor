@@ -731,116 +731,126 @@ class _ValaView extends StatelessWidget {
             ),
           ),
 
-          // Header
+          // Header with SafeArea
           Positioned(
             top: 0,
             left: 0,
             right: 0,
-            child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-              decoration: BoxDecoration(
-                gradient: LinearGradient(
-                  begin: Alignment.topCenter,
-                  end: Alignment.bottomCenter,
-                  colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
+            child: SafeArea(
+              bottom: false,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                decoration: BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.black.withValues(alpha: 0.8), Colors.transparent],
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    IconButton(
+                      icon: const Icon(Icons.close, color: Colors.white, size: 28),
+                      onPressed: viewModel.closeModal,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            event.translatedMissingPpe.isNotEmpty
+                                ? event.translatedMissingPpe
+                                : 'Detecção de Vala',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                          Text(
+                            event.displayDate,
+                            style: const TextStyle(color: Colors.white70, fontSize: 12),
+                          ),
+                        ],
+                      ),
+                    ),
+                    // Download button
+                    IconButton(
+                      icon: viewModel.isDownloading
+                          ? const SizedBox(
+                              width: 20,
+                              height: 20,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Icon(Icons.download, color: Colors.white),
+                      tooltip: 'Baixar imagem',
+                      onPressed: viewModel.isDownloading
+                          ? null
+                          : () => viewModel.downloadCurrentImage(),
+                    ),
+                  ],
                 ),
               ),
-              child: Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.close, color: Colors.white, size: 28),
-                    onPressed: viewModel.closeModal,
-                  ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          event.translatedMissingPpe.isNotEmpty
-                              ? event.translatedMissingPpe
-                              : 'Detecção de Vala',
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 2,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        Text(
-                          event.displayDate,
-                          style: const TextStyle(color: Colors.white70, fontSize: 12),
-                        ),
-                      ],
-                    ),
-                  ),
-                  // Download button
-                  IconButton(
-                    icon: viewModel.isDownloading
-                        ? const SizedBox(
-                            width: 20,
-                            height: 20,
-                            child: CircularProgressIndicator(
-                              strokeWidth: 2,
-                              color: Colors.white,
-                            ),
-                          )
-                        : const Icon(Icons.download, color: Colors.white),
-                    tooltip: 'Baixar imagem',
-                    onPressed: viewModel.isDownloading
-                        ? null
-                        : () => viewModel.downloadCurrentImage(),
-                  ),
-                ],
-              ),
             ),
           ),
 
-          // Navigation buttons (prev/next)
+          // Navigation buttons (prev/next) with SafeArea
           Positioned(
-            left: 16,
+            left: 8,
             top: 0,
             bottom: 0,
-            child: Center(
-              child: IconButton(
-                icon: const Icon(Icons.chevron_left, color: Colors.white, size: 40),
-                onPressed: viewModel.selectedIndex! > 0 ? viewModel.previousImage : null,
+            child: SafeArea(
+              child: Center(
+                child: IconButton(
+                  icon: const Icon(Icons.chevron_left, color: Colors.white, size: 40),
+                  onPressed: viewModel.selectedIndex! > 0 ? viewModel.previousImage : null,
+                ),
               ),
             ),
           ),
           Positioned(
-            right: 16,
+            right: 8,
             top: 0,
             bottom: 0,
-            child: Center(
-              child: IconButton(
-                icon: const Icon(Icons.chevron_right, color: Colors.white, size: 40),
-                onPressed: viewModel.selectedIndex! < viewModel.events.length - 1
-                    ? viewModel.nextImage
-                    : null,
+            child: SafeArea(
+              child: Center(
+                child: IconButton(
+                  icon: const Icon(Icons.chevron_right, color: Colors.white, size: 40),
+                  onPressed: viewModel.selectedIndex! < viewModel.events.length - 1
+                      ? viewModel.nextImage
+                      : null,
+                ),
               ),
             ),
           ),
 
-          // Toast feedback overlay
+          // Toast feedback overlay with SafeArea
           if (viewModel.successMessage != null || viewModel.errorMessage != null)
             Positioned(
-              bottom: 30,
+              bottom: 24,
               left: 20,
               right: 20,
-              child: Container(
-                padding: const EdgeInsets.all(12),
-                decoration: BoxDecoration(
-                  color: viewModel.successMessage != null
-                      ? Colors.green.shade800.withValues(alpha: 0.9)
-                      : Colors.red.shade800.withValues(alpha: 0.9),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Text(
-                  viewModel.successMessage ?? viewModel.errorMessage ?? '',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+              child: SafeArea(
+                top: false,
+                child: Container(
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    color: viewModel.successMessage != null
+                        ? Colors.green.shade800.withValues(alpha: 0.9)
+                        : Colors.red.shade800.withValues(alpha: 0.9),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Text(
+                    viewModel.successMessage ?? viewModel.errorMessage ?? '',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+                  ),
                 ),
               ),
             ),

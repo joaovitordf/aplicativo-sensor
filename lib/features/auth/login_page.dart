@@ -140,16 +140,18 @@ class _LoginPageState extends State<LoginPage> {
                             const SizedBox(height: 20),
                             SizedBox(
                               width: double.infinity,
-                              height: 48,
+                              height: 50,
                               child: ElevatedButton(
                                 onPressed: authController.isLoading
                                     ? null
                                     : _handleLogin,
                                 style: ElevatedButton.styleFrom(
-                                  backgroundColor: const Color(0xFF74A9C3),
-                                  disabledBackgroundColor: Colors.grey,
+                                  backgroundColor: kPaletteDeepBlue,
+                                  foregroundColor: Colors.white,
+                                  disabledBackgroundColor: Colors.grey.shade400,
+                                  elevation: 2,
                                   shape: RoundedRectangleBorder(
-                                    borderRadius: BorderRadius.circular(8),
+                                    borderRadius: BorderRadius.circular(10),
                                   ),
                                 ),
                                 child: authController.isLoading
@@ -158,13 +160,13 @@ class _LoginPageState extends State<LoginPage> {
                                         height: 24,
                                         child: CircularProgressIndicator(
                                           color: Colors.white,
-                                          strokeWidth: 2,
+                                          strokeWidth: 2.5,
                                         ),
                                       )
                                     : const Text(
                                         "Entrar",
                                         style: TextStyle(
-                                          fontSize: 18,
+                                          fontSize: 17,
                                           color: Colors.white,
                                           fontWeight: FontWeight.bold,
                                         ),

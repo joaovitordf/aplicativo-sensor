@@ -61,26 +61,29 @@ class VmsService {
   }
 
   /// Build URL for recorded segment playback.
-  /// Format: {streamUrl}/get?path={cameraPath}&start={timestamp}&duration={seconds}&format=fmp4
+  /// Format: {streamUrl}/get?path={cameraPath}&start={timestamp}&duration={seconds}&format=mp4
   String buildRecordingUrl({
     required String cameraPath,
     required DateTime startTime,
     String? originalStartString,
     int durationSeconds = 3600,
+    String format = 'mp4',
   }) {
     final pathEncoded = Uri.encodeComponent(cameraPath);
     final startString = originalStartString ?? startTime.toIso8601String();
     final startEncoded = Uri.encodeComponent(startString);
 
-    return '$streamUrl/get?path=$pathEncoded&start=$startEncoded&duration=$durationSeconds&format=fmp4';
+    return '$streamUrl/get?path=$pathEncoded&start=$startEncoded&duration=$durationSeconds&format=$format';
   }
 
   /// Calculate duration between two consecutive segments.
+  /// Matches Angular frontend logic.
   int calculateSegmentDuration(
       RecordingSegment current, RecordingSegment? next) {
     if (next == null) return 3600; // Default 1 hour
-    final durationMs = next.start.difference(current.start).inMilliseconds;
-    return (durationMs / 1000).floor();
+    final durationSec = next.start.difference(current.start).inSeconds;
+    if (durationSec <= 0 || durationSec > 7200) return 300;
+    return durationSec;
   }
 
   /// Get playback URL for a specific segment.
@@ -89,6 +92,7 @@ class VmsService {
     required RecordingSegment segment,
     RecordingSegment? nextSegment,
     int? overrideDuration,
+    String format = 'fmp4',
   }) {
     final duration =
         overrideDuration ?? calculateSegmentDuration(segment, nextSegment);
@@ -97,6 +101,7 @@ class VmsService {
       startTime: segment.start,
       originalStartString: segment.originalStartString,
       durationSeconds: duration,
+      format: format,
     );
   }
 

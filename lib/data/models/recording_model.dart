@@ -1,13 +1,17 @@
 import 'package:sensortech/data/models/camera_model.dart';
 
-/// A single recording segment with a start timestamp.
+/// A single recording segment or continuous recording block with start/end timestamps.
 class RecordingSegment {
   final DateTime start;
   final String? originalStartString;
+  final DateTime? end;
+  final int durationSeconds;
 
   RecordingSegment({
     required this.start,
     this.originalStartString,
+    this.end,
+    this.durationSeconds = 3600,
   });
 
   factory RecordingSegment.fromJson(Map<String, dynamic> json) {
@@ -46,7 +50,11 @@ class RecordingSegment {
   }
 
   Map<String, dynamic> toJson() {
-    return {'start': start.toIso8601String()};
+    return {
+      'start': start.toIso8601String(),
+      if (originalStartString != null)
+        'originalStartString': originalStartString,
+    };
   }
 
   /// Date portion for grouping by day.
@@ -57,6 +65,30 @@ class RecordingSegment {
       '${start.hour.toString().padLeft(2, '0')}:'
       '${start.minute.toString().padLeft(2, '0')}:'
       '${start.second.toString().padLeft(2, '0')}';
+
+  /// End time portion as HH:mm:ss string (if available).
+  String? get endTimeString {
+    if (end == null) return null;
+    return '${end!.hour.toString().padLeft(2, '0')}:'
+        '${end!.minute.toString().padLeft(2, '0')}:'
+        '${end!.second.toString().padLeft(2, '0')}';
+  }
+
+  /// Formatted duration label (e.g., "1h 15min", "10min 30s", "45s").
+  String get formattedDuration {
+    final d = durationSeconds;
+    if (d >= 3600) {
+      final hours = d ~/ 3600;
+      final mins = (d % 3600) ~/ 60;
+      return mins > 0 ? '${hours}h ${mins}min' : '${hours}h';
+    } else if (d >= 60) {
+      final mins = d ~/ 60;
+      final secs = d % 60;
+      return secs > 0 ? '${mins}min ${secs}s' : '${mins}min';
+    } else {
+      return '${d}s';
+    }
+  }
 }
 
 /// Represents a camera's recording entry with all its segments.
@@ -96,9 +128,56 @@ class Recording {
     return dates.toList()..sort();
   }
 
-  /// Get segments for a specific calendar date.
+  /// Get raw segments for a specific calendar date.
   List<RecordingSegment> getSegmentsForDate(DateTime date) {
     final targetDate = DateTime(date.year, date.month, date.day);
     return segments.where((seg) => seg.date == targetDate).toList();
+  }
+
+  /// Get continuous recording sessions/blocks for a specific calendar date.
+  /// Groups raw chunk segments (<= 60s gap) into continuous sessions.
+  List<RecordingSegment> getGroupedSegmentsForDate(DateTime date,
+      {int gapThresholdSeconds = 60}) {
+    final rawList = getSegmentsForDate(date);
+    if (rawList.isEmpty) return [];
+
+    final sorted = List<RecordingSegment>.from(rawList)
+      ..sort((a, b) => a.start.compareTo(b.start));
+
+    final List<RecordingSegment> grouped = [];
+    RecordingSegment currentGroupStart = sorted.first;
+
+    for (int i = 0; i < sorted.length; i++) {
+      final current = sorted[i];
+      final isLast = i == sorted.length - 1;
+
+      if (isLast) {
+        final durationSec =
+            current.start.difference(currentGroupStart.start).inSeconds + 10;
+        grouped.add(RecordingSegment(
+          start: currentGroupStart.start,
+          originalStartString: currentGroupStart.originalStartString,
+          end: current.start.add(const Duration(seconds: 10)),
+          durationSeconds: durationSec >= 10 ? durationSec : 3600,
+        ));
+      } else {
+        final next = sorted[i + 1];
+        final gap = next.start.difference(current.start).inSeconds;
+
+        if (gap > gapThresholdSeconds) {
+          final durationSec =
+              current.start.difference(currentGroupStart.start).inSeconds + 10;
+          grouped.add(RecordingSegment(
+            start: currentGroupStart.start,
+            originalStartString: currentGroupStart.originalStartString,
+            end: current.start.add(const Duration(seconds: 10)),
+            durationSeconds: durationSec >= 10 ? durationSec : 3600,
+          ));
+          currentGroupStart = next;
+        }
+      }
+    }
+
+    return grouped;
   }
 }

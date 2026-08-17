@@ -174,9 +174,13 @@ class _CameraVmsPageView extends StatelessWidget {
             padding:
                 const EdgeInsets.symmetric(vertical: 4.0, horizontal: 8.0),
             color: Colors.grey[200],
-            child: Column(
-              children: [
-                Row(
+            child: SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              child: ConstrainedBox(
+                constraints: BoxConstraints(
+                  minWidth: MediaQuery.sizeOf(context).width - 16,
+                ),
+                child: Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
                     // Live button
@@ -202,7 +206,7 @@ class _CameraVmsPageView extends StatelessWidget {
                       onPressed: viewModel.currentSegmentIndex > 0
                           ? viewModel.previousSegment
                           : null,
-                      tooltip: 'Segmento anterior',
+                      tooltip: 'Gravação anterior',
                     ),
                     IconButton(
                       icon: Icon(viewModel.isPlaying
@@ -219,7 +223,7 @@ class _CameraVmsPageView extends StatelessWidget {
                               viewModel.segmentsForSelectedDate.length - 1
                           ? viewModel.nextSegment
                           : null,
-                      tooltip: 'Próximo segmento',
+                      tooltip: 'Próxima gravação',
                     ),
                     if (viewModel.currentSegmentIndex != -1)
                       ConstrainedBox(
@@ -262,7 +266,7 @@ class _CameraVmsPageView extends StatelessWidget {
                     ),
                   ],
                 ),
-              ],
+              ),
             ),
           ),
 
@@ -364,7 +368,7 @@ class _CameraVmsPageView extends StatelessWidget {
         Icon(Icons.play_circle_outline, size: 64, color: Colors.white54),
         SizedBox(height: 8),
         Text(
-          'Selecione um segmento para reproduzir',
+          'Selecione uma gravação para reproduzir',
           style: TextStyle(color: Colors.white70),
         ),
       ],
@@ -416,7 +420,7 @@ class _CameraVmsPageView extends StatelessWidget {
               size: 32,
             ),
             title: Text(
-              DateFormat('HH:mm:ss').format(segment.start),
+              segment.timeString,
               style: TextStyle(
                 fontWeight:
                     isActive ? FontWeight.bold : FontWeight.normal,
