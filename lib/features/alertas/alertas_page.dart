@@ -49,17 +49,83 @@ class _AlertaView extends StatelessWidget {
                 // Header with back button
                 _buildHeader(context),
 
-                // Filter controls
-                _buildFilterBar(context, viewModel),
-
-                // Main content: Event list or Empty/Loading state
+                // Scrollable content (filters, top pagination, events, bottom pagination)
                 Expanded(
-                  child: _buildBody(context, viewModel),
-                ),
+                  child: RefreshIndicator(
+                    onRefresh: () =>
+                        viewModel.loadEvents(page: viewModel.currentPage),
+                    child: CustomScrollView(
+                      physics: const AlwaysScrollableScrollPhysics(),
+                      slivers: [
+                        // Filter controls
+                        SliverToBoxAdapter(
+                          child: _buildFilterBar(context, viewModel),
+                        ),
 
-                // Pagination footer
-                if (viewModel.events.isNotEmpty || viewModel.currentPage > 1)
-                  _buildPaginationFooter(viewModel),
+                        // Error state (if error and no events)
+                        if (viewModel.errorMessage != null &&
+                            viewModel.events.isEmpty)
+                          SliverToBoxAdapter(
+                            child: _buildErrorState(viewModel),
+                          ),
+
+                        // Loading state
+                        if (viewModel.isLoading)
+                          const SliverToBoxAdapter(
+                            child: Padding(
+                              padding: EdgeInsets.symmetric(vertical: 60.0),
+                              child: Center(child: CircularProgressIndicator()),
+                            ),
+                          ),
+
+                        // Empty state (if not loading and no events)
+                        if (!viewModel.isLoading &&
+                            viewModel.errorMessage == null &&
+                            viewModel.events.isEmpty)
+                          SliverToBoxAdapter(
+                            child: _buildEmptyState(viewModel),
+                          ),
+
+                        // Top Pagination
+                        if (!viewModel.isLoading &&
+                            (viewModel.events.isNotEmpty ||
+                                viewModel.currentPage > 1))
+                          SliverToBoxAdapter(
+                            child: _buildPagination(viewModel),
+                          ),
+
+                        // Lazy-loaded Events List
+                        if (!viewModel.isLoading && viewModel.events.isNotEmpty)
+                          SliverPadding(
+                            padding:
+                                const EdgeInsets.symmetric(horizontal: 16.0),
+                            sliver: SliverList.separated(
+                              itemCount: viewModel.events.length,
+                              separatorBuilder: (context, index) =>
+                                  const SizedBox(height: 16),
+                              itemBuilder: (context, index) {
+                                final event = viewModel.events[index];
+                                return _buildEventCard(
+                                    context, viewModel, event, index);
+                              },
+                            ),
+                          ),
+
+                        // Bottom Pagination
+                        if (!viewModel.isLoading &&
+                            (viewModel.events.isNotEmpty ||
+                                viewModel.currentPage > 1))
+                          SliverToBoxAdapter(
+                            child: _buildPagination(viewModel),
+                          ),
+
+                        const SliverToBoxAdapter(
+                          child: SizedBox(height: 24),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
               ],
             ),
 
@@ -303,29 +369,70 @@ class _AlertaView extends StatelessWidget {
     );
   }
 
-  Widget _buildBody(BuildContext context, AlertaViewModel viewModel) {
-    if (viewModel.isLoading) {
-      return const Center(child: CircularProgressIndicator());
-    }
+  Widget _buildErrorState(AlertaViewModel viewModel) {
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24.0),
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+            const SizedBox(height: 12),
+            Text(
+              viewModel.errorMessage!,
+              textAlign: TextAlign.center,
+              style: const TextStyle(color: Colors.red, fontSize: 14),
+            ),
+            const SizedBox(height: 16),
+            ElevatedButton(
+              onPressed: () =>
+                  viewModel.loadEvents(page: viewModel.currentPage),
+              child: const Text('Tentar novamente'),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 
-    if (viewModel.errorMessage != null && viewModel.events.isEmpty) {
+  Widget _buildEmptyState(AlertaViewModel viewModel) {
+    if (viewModel.currentPage > 1) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24.0),
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              const Icon(Icons.error_outline, size: 48, color: Colors.red),
-              const SizedBox(height: 12),
-              Text(
-                viewModel.errorMessage!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.red, fontSize: 14),
-              ),
+              Icon(Icons.check_circle_outline,
+                  size: 64,
+                  color: kPalettePrimaryDark.withValues(alpha: 0.6)),
               const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: () => viewModel.loadEvents(page: viewModel.currentPage),
-                child: const Text('Tentar novamente'),
+              const Text(
+                'Fim dos resultados',
+                style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.black87),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Não há eventos adicionais na página ${viewModel.currentPage}.',
+                textAlign: TextAlign.center,
+                style:
+                    TextStyle(fontSize: 13, color: Colors.grey.shade600),
+              ),
+              const SizedBox(height: 20),
+              ElevatedButton.icon(
+                onPressed: () =>
+                    viewModel.loadEvents(page: viewModel.currentPage - 1),
+                icon: const Icon(Icons.arrow_back, size: 18),
+                label: const Text('Voltar para página anterior'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: kPaletteDeepBlue,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 16, vertical: 12),
+                ),
               ),
             ],
           ),
@@ -333,52 +440,21 @@ class _AlertaView extends StatelessWidget {
       );
     }
 
-    if (viewModel.events.isEmpty) {
-      if (viewModel.currentPage > 1) {
-        return Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24.0),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(Icons.check_circle_outline, size: 64, color: kPalettePrimaryDark.withValues(alpha: 0.6)),
-                const SizedBox(height: 16),
-                const Text(
-                  'Fim dos resultados',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold, color: Colors.black87),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Não há eventos adicionais na página ${viewModel.currentPage}.',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(fontSize: 13, color: Colors.grey.shade600),
-                ),
-                const SizedBox(height: 20),
-                ElevatedButton.icon(
-                  onPressed: () => viewModel.loadEvents(page: viewModel.currentPage - 1),
-                  icon: const Icon(Icons.arrow_back, size: 18),
-                  label: const Text('Voltar para página anterior'),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: kPaletteDeepBlue,
-                    foregroundColor: Colors.white,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        );
-      }
-
-      return Center(
+    return Center(
+      child: Padding(
+        padding: const EdgeInsets.all(32.0),
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            Icon(Icons.photo_library_outlined, size: 64, color: Colors.grey.shade400),
+            Icon(Icons.photo_library_outlined,
+                size: 64, color: Colors.grey.shade400),
             const SizedBox(height: 16),
             Text(
               'Nenhum evento encontrado',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.grey.shade700),
+              style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.bold,
+                  color: Colors.grey.shade700),
             ),
             const SizedBox(height: 8),
             Text(
@@ -387,19 +463,81 @@ class _AlertaView extends StatelessWidget {
             ),
           ],
         ),
-      );
-    }
+      ),
+    );
+  }
 
-    return RefreshIndicator(
-      onRefresh: () => viewModel.loadEvents(page: viewModel.currentPage),
-      child: ListView.separated(
-        padding: const EdgeInsets.all(16.0),
-        itemCount: viewModel.events.length,
-        separatorBuilder: (context, index) => const SizedBox(height: 16),
-        itemBuilder: (context, index) {
-          final event = viewModel.events[index];
-          return _buildEventCard(context, viewModel, event, index);
-        },
+  Widget _buildPagination(AlertaViewModel viewModel) {
+    final visiblePages = viewModel.getVisiblePages();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 12.0),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          // Previous page chevron
+          SizedBox(
+            width: 40,
+            height: 40,
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              icon: const Icon(Icons.chevron_left, color: kPalettePrimaryDark),
+              onPressed: viewModel.currentPage > 1 && !viewModel.isLoading
+                  ? () => viewModel.goToPage(viewModel.currentPage - 1)
+                  : null,
+            ),
+          ),
+          const SizedBox(width: 4),
+
+          // Number buttons
+          ...visiblePages.map((page) {
+            final isSelected = viewModel.currentPage == page;
+            return Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3),
+              child: InkWell(
+                onTap: isSelected || viewModel.isLoading
+                    ? null
+                    : () => viewModel.goToPage(page),
+                borderRadius: BorderRadius.circular(4),
+                child: Container(
+                  constraints: const BoxConstraints(minWidth: 34),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: isSelected
+                        ? const Color(0xFF089bfe)
+                        : Colors.transparent,
+                    borderRadius: BorderRadius.circular(4),
+                  ),
+                  child: Text(
+                    '$page',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: isSelected ? Colors.white : Colors.black87,
+                      fontWeight:
+                          isSelected ? FontWeight.bold : FontWeight.normal,
+                      fontSize: 14,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }),
+
+          const SizedBox(width: 4),
+          // Next page chevron
+          SizedBox(
+            width: 40,
+            height: 40,
+            child: IconButton(
+              padding: EdgeInsets.zero,
+              icon: const Icon(Icons.chevron_right, color: kPalettePrimaryDark),
+              onPressed: viewModel.hasNextPage && !viewModel.isLoading
+                  ? () => viewModel.goToPage(viewModel.currentPage + 1)
+                  : null,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -431,6 +569,7 @@ class _AlertaView extends StatelessWidget {
                   Image.network(
                     imageUrl,
                     headers: token.isNotEmpty ? {'Authorization': 'Bearer $token'} : null,
+                    cacheWidth: 600,
                     fit: BoxFit.cover,
                     loadingBuilder: (context, child, loadingProgress) {
                       if (loadingProgress == null) return child;
@@ -556,45 +695,6 @@ class _AlertaView extends StatelessWidget {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildPaginationFooter(AlertaViewModel viewModel) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        border: Border(top: BorderSide(color: Colors.grey.shade200)),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          ElevatedButton.icon(
-            onPressed: viewModel.currentPage > 1
-                ? () => viewModel.loadEvents(page: viewModel.currentPage - 1)
-                : null,
-            icon: const Icon(Icons.chevron_left, size: 18),
-            label: const Text('Anterior'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            ),
-          ),
-          Text(
-            'Página ${viewModel.currentPage}',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-          ElevatedButton.icon(
-            onPressed: viewModel.hasNextPage
-                ? () => viewModel.loadEvents(page: viewModel.currentPage + 1)
-                : null,
-            icon: const Icon(Icons.chevron_right, size: 18),
-            label: const Text('Próxima'),
-            style: ElevatedButton.styleFrom(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            ),
-          ),
-        ],
       ),
     );
   }

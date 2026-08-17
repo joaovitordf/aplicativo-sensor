@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 import 'package:flutter/foundation.dart';
 import 'package:intl/intl.dart';
 import 'package:path_provider/path_provider.dart';
@@ -39,6 +40,7 @@ class AlertaViewModel extends ChangeNotifier {
   List<PpeEvent> events = [];
   List<Camera> cameras = [];
   int currentPage = 1;
+  int maxKnownPage = 1;
   bool hasNextPage = true;
 
   // Filters
@@ -71,6 +73,9 @@ class AlertaViewModel extends ChangeNotifier {
     isLoading = true;
     errorMessage = null;
     currentPage = page;
+    if (page == 1) {
+      maxKnownPage = 1;
+    }
     notifyListeners();
 
     try {
@@ -105,6 +110,12 @@ class AlertaViewModel extends ChangeNotifier {
       currentPage = page;
       // Se retornou menos que 20 itens, não há próxima página
       hasNextPage = fetched.length >= 20;
+      if (page > maxKnownPage) {
+        maxKnownPage = page;
+      }
+      if (hasNextPage && page + 1 > maxKnownPage) {
+        maxKnownPage = page + 1;
+      }
       isLoading = false;
       notifyListeners();
     } catch (e) {
@@ -112,6 +123,23 @@ class AlertaViewModel extends ChangeNotifier {
       errorMessage = 'Erro ao carregar eventos de EPI: $e';
       notifyListeners();
     }
+  }
+
+  void goToPage(int page) {
+    if (page < 1 || isLoading) return;
+    loadEvents(page: page);
+  }
+
+  List<int> getVisiblePages() {
+    int maxPage = max(currentPage + (hasNextPage ? 1 : 0), maxKnownPage);
+    const maxVisible = 5;
+    final half = maxVisible ~/ 2;
+    int start = (currentPage - half).clamp(1, maxPage);
+    int end = (start + maxVisible - 1).clamp(1, maxPage);
+    if (end - start < maxVisible - 1) {
+      start = (end - maxVisible + 1).clamp(1, maxPage);
+    }
+    return List.generate(end - start + 1, (i) => start + i);
   }
 
   Future<void> loadCameras() async {
