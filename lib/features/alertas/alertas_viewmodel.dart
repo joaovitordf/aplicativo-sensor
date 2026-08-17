@@ -123,7 +123,7 @@ class AlertaViewModel extends ChangeNotifier {
 
     try {
       final list = await _cameraService.getCamerasByClient(cId);
-      list.sort((a, b) => a.id.compareTo(b.id));
+      list.sort((a, b) => a.displayId.compareTo(b.displayId));
       cameras = list;
     } catch (e) {
       debugPrint('[AlertaViewModel] Error loading cameras: $e');
@@ -160,9 +160,10 @@ class AlertaViewModel extends ChangeNotifier {
     if (isLoadingCameras) return 'Carregando câmeras...';
     if (cameras.isEmpty) return 'Nenhuma câmera encontrada';
     if (selectedCameraId == null) return 'Todas as Câmeras';
-    final camera = cameras.where((c) => c.id == selectedCameraId).firstOrNull;
+    final camera =
+        cameras.where((c) => c.displayId == selectedCameraId).firstOrNull;
     return camera != null && camera.nomeCamera.isNotEmpty
-        ? '${camera.id} - ${camera.nomeCamera}'
+        ? '${camera.displayId} - ${camera.nomeCamera}'
         : 'Câmera $selectedCameraId';
   }
 

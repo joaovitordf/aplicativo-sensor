@@ -1,6 +1,7 @@
 /// Camera model matching the backend `/api/v1/cameras` response.
 class Camera {
   final int id;
+  final int? cameraId;
   final String nomeCamera;
   final String linkcamera;
   final String linkHLS;
@@ -44,6 +45,7 @@ class Camera {
 
   Camera({
     required this.id,
+    this.cameraId,
     required this.nomeCamera,
     required this.linkcamera,
     required this.linkHLS,
@@ -95,6 +97,9 @@ class Camera {
 
     return Camera(
       id: int.tryParse(json['id'].toString()) ?? 0,
+      cameraId: json['camera_id'] != null
+          ? int.tryParse(json['camera_id'].toString())
+          : null,
       nomeCamera: json['NomeCamera'] as String? ?? '',
       linkcamera: json['linkcamera'] as String? ?? '',
       linkHLS: json['linkHLS'] as String? ?? '',
@@ -143,6 +148,9 @@ class Camera {
       lastSeen: toStringOrNull(json['last_seen']),
     );
   }
+
+  /// Get the effective camera ID (camera_id if present, else id)
+  int get displayId => cameraId ?? id;
 
   /// Get the VMS path name (idCliente/idCamera) for recordings
   String get vmsPathName => '$idCliente/$id';

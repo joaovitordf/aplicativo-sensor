@@ -3,7 +3,8 @@ import 'package:video_player/video_player.dart';
 import 'package:sensortech/data/services/vms_service.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:video_thumbnail/video_thumbnail.dart';
+import 'package:get_thumbnail_video/video_thumbnail.dart';
+import 'package:get_thumbnail_video/index.dart';
 import 'package:sensortech/data/models/recording_model.dart';
 
 /// ViewModel for the Câmera VMS player page.
@@ -338,15 +339,16 @@ class CameraVmsViewModel extends ChangeNotifier {
       }
 
       debugPrint('[VMS] Capturing thumbnail from: $targetUrl');
-      final String? path = await VideoThumbnail.thumbnailFile(
+      final xFile = await VideoThumbnail.thumbnailFile(
         video: targetUrl,
         thumbnailPath: appDir.path,
         imageFormat: ImageFormat.JPEG,
         maxWidth: 320,
         quality: 50,
       );
+      final String path = xFile.path;
 
-      if (path != null) {
+      if (path.isNotEmpty) {
         debugPrint('[VMS] Thumbnail captured at $path');
         final prefs = await SharedPreferences.getInstance();
         await prefs.setString('thumb_$id', path);

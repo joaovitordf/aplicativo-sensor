@@ -33,7 +33,7 @@ class CameraService {
         final cameras = cameraList
             .map((json) => Camera.fromJson(json as Map<String, dynamic>))
             .toList();
-        cameras.sort((a, b) => a.id.compareTo(b.id));
+        cameras.sort((a, b) => a.displayId.compareTo(b.displayId));
         return cameras;
       }
 

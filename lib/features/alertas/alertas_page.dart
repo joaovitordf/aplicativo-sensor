@@ -220,8 +220,8 @@ class _AlertaView extends StatelessWidget {
                       label: 'Todas as Câmeras',
                     ),
                     ...viewModel.cameras.map((c) => SearchableDropdownItem(
-                          value: c.id,
-                          label: '${c.id} - ${c.nomeCamera}',
+                          value: c.displayId,
+                          label: '${c.displayId} - ${c.nomeCamera}',
                         )),
                   ],
                   onChanged: viewModel.isLoadingCameras

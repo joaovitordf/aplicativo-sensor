@@ -133,6 +133,7 @@ void main() {
       final sampleJson = {
         "NomeCamera": "BBLENG - CAM-1A2 - ENG7H46 - EQUIPE6 - CAM02 - 1",
         "agent_enabled": 1,
+        "camera_id": 24,
         "client_id": 8,
         "conf_min": 0.6,
         "conformity_interval": 30,
@@ -153,6 +154,8 @@ void main() {
       final camera = Camera.fromJson(sampleJson);
 
       expect(camera.id, 45);
+      expect(camera.cameraId, 24);
+      expect(camera.displayId, 24);
       expect(camera.nomeCamera, "BBLENG - CAM-1A2 - ENG7H46 - EQUIPE6 - CAM02 - 1");
       expect(camera.idCliente, 49);
       expect(camera.linkHLS, "http://streamserver.example.com:8888/8/45/index.m3u8");
