@@ -38,16 +38,6 @@ class _HomePageState extends State<HomePage> {
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          const Text(
-                            'Módulos Disponíveis',
-                            style: TextStyle(
-                              fontSize: 18,
-                              fontWeight: FontWeight.bold,
-                              color: kPalettePrimaryDark,
-                            ),
-                          ),
-                          const SizedBox(height: 16),
-
                           if (auth.hasVms) ...[
                             _buildMenuCard(
                               context,

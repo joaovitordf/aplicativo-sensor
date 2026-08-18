@@ -52,7 +52,7 @@ class AuthUser {
       username: json['username'] as String? ?? '',
       email: json['email'] as String?,
       phone: json['phone'] as String?,
-      role: json['role'] as String? ?? 'cliente',
+      role: (json['role'] ?? json['perfil']) as String? ?? 'cliente',
       active: json['active'] as int? ?? 1,
       allowedTabs: parseStringList(json['allowed_tabs']),
       visibleGroups: parseStringList(json['visible_groups']),

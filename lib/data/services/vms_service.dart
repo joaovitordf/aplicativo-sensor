@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:sensortech/core/app_config.dart';
 import 'package:sensortech/data/models/recording_model.dart';
 
 /// Service for interacting with StreamServer VMS API (recordings & live streams).
@@ -11,9 +11,9 @@ class VmsService {
   final String hlsUrl;
 
   VmsService(this._dio)
-      : apiUrl = dotenv.env['STREAMSERVER_API_URL'] ?? '',
-        streamUrl = dotenv.env['STREAMSERVER_STREAM_URL'] ?? '',
-        hlsUrl = dotenv.env['STREAMSERVER_HLS_URL'] ?? '';
+      : apiUrl = AppConfig.streamServerApiUrl,
+        streamUrl = AppConfig.streamServerStreamUrl,
+        hlsUrl = AppConfig.streamServerHlsUrl;
 
   /// Lazy-load segments for a single camera from the StreamServer.
   /// Fetches from GET {apiUrl}/v3/recordings/get/{pathName}

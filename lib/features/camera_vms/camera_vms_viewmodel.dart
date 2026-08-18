@@ -14,6 +14,12 @@ class CameraVmsViewModel extends ChangeNotifier {
 
   bool _isDisposed = false;
 
+  void _safeNotifyListeners() {
+    if (!_isDisposed) {
+      notifyListeners();
+    }
+  }
+
   CameraVmsViewModel({
     required VmsService vmsService,
     EquipamentoIotService? equipamentoService,
@@ -53,7 +59,7 @@ class CameraVmsViewModel extends ChangeNotifier {
     dataError = null;
     playerError = null;
     selectedRecording = recording;
-    notifyListeners();
+    _safeNotifyListeners();
 
     // Fetch linked IoT Equipment status concurrently if idRasp exists
     final idRasp = recording.cameraInfo?.idRasp;
@@ -74,6 +80,8 @@ class CameraVmsViewModel extends ChangeNotifier {
         recording.segments = segments;
       }
 
+      if (_isDisposed) return;
+
       isLoading = false;
 
       // Auto-select the most recent date that has recordings
@@ -87,26 +95,29 @@ class CameraVmsViewModel extends ChangeNotifier {
       _updateSegmentsForSelectedDate();
       debugPrint(
           '[VMS] Segments for selected date: ${segmentsForSelectedDate.length}');
-      notifyListeners();
+      _safeNotifyListeners();
 
       // Start live stream
       _startLiveStreamForRecording(recording);
     } catch (e) {
+      if (_isDisposed) return;
       dataError = 'Erro ao carregar segmentos. Tente novamente.';
       isLoading = false;
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
   // ─── Linked IoT Equipment Methods ────────────────────────────────────────
   Future<void> _fetchLinkedIotEquipment(int idRasp) async {
-    if (_equipamentoService == null) return;
+    final eqService = _equipamentoService;
+    if (eqService == null) return;
     isIotLoading = true;
     iotError = null;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
-      final list = await _equipamentoService.list();
+      final list = await eqService.list();
+      if (_isDisposed) return;
       // Match by id or idRasp
       final matches = list.where((eq) => eq.id == idRasp || eq.idRasp == idRasp);
       if (matches.isNotEmpty) {
@@ -115,11 +126,14 @@ class CameraVmsViewModel extends ChangeNotifier {
         linkedIotEquipamento = null;
       }
     } catch (e) {
+      if (_isDisposed) return;
       debugPrint('[CameraVmsViewModel] Error fetching linked IoT equipment: $e');
       iotError = e.toString();
     } finally {
-      isIotLoading = false;
-      notifyListeners();
+      if (!_isDisposed) {
+        isIotLoading = false;
+        _safeNotifyListeners();
+      }
     }
   }
 
@@ -133,10 +147,11 @@ class CameraVmsViewModel extends ChangeNotifier {
   /// Aciona a sirene para o equipamento IoT vinculado à câmera.
   /// Envia a requisição POST /api/v1/equipamentosiot/timer com { "id": id, "seconds": seconds }
   Future<void> acionarSirene({required int id, int seconds = 5}) async {
-    if (_equipamentoService == null) return;
+    final eqService = _equipamentoService;
+    if (eqService == null) return;
     try {
       debugPrint('[CameraVmsViewModel] Enviando requisição para acionar sirene: id=$id, seconds=$seconds');
-      await _equipamentoService!.acionarSirene(id: id, seconds: seconds);
+      await eqService.acionarSirene(id: id, seconds: seconds);
     } catch (e) {
       debugPrint('[CameraVmsViewModel] Erro ao acionar sirene: $e');
       rethrow;

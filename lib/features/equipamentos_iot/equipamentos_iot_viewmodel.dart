@@ -17,6 +17,14 @@ class EquipamentosIotViewModel extends ChangeNotifier {
   final SolutionService _solutionService;
   final CameraService _cameraService;
 
+  bool _isDisposed = false;
+
+  void _safeNotifyListeners() {
+    if (!_isDisposed) {
+      notifyListeners();
+    }
+  }
+
   EquipamentosIotViewModel({
     required AuthController auth,
     required EquipamentoIotService equipamentoService,
@@ -64,7 +72,7 @@ class EquipamentosIotViewModel extends ChangeNotifier {
   Future<void> loadData() async {
     _isLoading = true;
     _errorMessage = null;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       final currentClientId = _auth.clientId;
@@ -100,6 +108,8 @@ class EquipamentosIotViewModel extends ChangeNotifier {
       final eqResult = await eqFuture;
       final camResult = await camFuture;
 
+      if (_isDisposed) return;
+
       _solutions = solResult;
       _clientes = cliResult;
       _clientCameras = camResult;
@@ -123,27 +133,34 @@ class EquipamentosIotViewModel extends ChangeNotifier {
       _filterEquipamentosForCurrentRole();
       _applyFilters();
     } catch (e) {
+      if (_isDisposed) return;
       _errorMessage = 'Erro ao carregar equipamentos IoT. Tente novamente.';
       debugPrint('[EquipamentosIotViewModel] loadData error: $e');
     } finally {
-      _isLoading = false;
-      notifyListeners();
+      if (!_isDisposed) {
+        _isLoading = false;
+        _safeNotifyListeners();
+      }
     }
   }
 
   void _filterEquipamentosForCurrentRole() {
     final currentClientId = _auth.clientId;
 
-    if (!isSuperAdmin && currentClientId != null && currentClientId > 0) {
-      final allowedRaspIds = _cachedClientRaspIds[currentClientId] ?? <int>{};
+    if (!isSuperAdmin) {
+      if (currentClientId != null && currentClientId > 0) {
+        final allowedRaspIds = _cachedClientRaspIds[currentClientId] ?? <int>{};
 
-      _allEquipamentos = _rawMappedEquipamentos.where((item) {
-        final matchesRasp = (item.id != null && allowedRaspIds.contains(item.id)) ||
-            (item.idRasp != null && allowedRaspIds.contains(item.idRasp));
-        final matchesClient = item.idCliente == currentClientId;
+        _allEquipamentos = _rawMappedEquipamentos.where((item) {
+          final matchesRasp = (item.id != null && allowedRaspIds.contains(item.id)) ||
+              (item.idRasp != null && allowedRaspIds.contains(item.idRasp));
+          final matchesClient = item.idCliente == currentClientId;
 
-        return matchesRasp || matchesClient;
-      }).toList();
+          return matchesRasp || matchesClient;
+        }).toList();
+      } else {
+        _allEquipamentos = [];
+      }
     } else {
       _allEquipamentos = List.from(_rawMappedEquipamentos);
     }
@@ -185,7 +202,7 @@ class EquipamentosIotViewModel extends ChangeNotifier {
   void setSearchQuery(String query) {
     _searchQuery = query.trim();
     _applyFilters();
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   Future<void> setSelectedCliente(int? clienteId) async {
@@ -194,6 +211,7 @@ class EquipamentosIotViewModel extends ChangeNotifier {
     if (clienteId != null && clienteId > 0 && !_cachedClientRaspIds.containsKey(clienteId)) {
       try {
         final cameras = await _cameraService.getCamerasByClient(clienteId);
+        if (_isDisposed) return;
         final raspIds = <int>{};
         for (final cam in cameras) {
           if (cam.idRasp != null && cam.idRasp! > 0) {
@@ -206,14 +224,15 @@ class EquipamentosIotViewModel extends ChangeNotifier {
       }
     }
 
+    if (_isDisposed) return;
     _applyFilters();
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   void setSelectedFilter(String filter) {
     _selectedFilter = filter;
     _applyFilters();
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   void _applyFilters() {
@@ -282,6 +301,12 @@ class EquipamentosIotViewModel extends ChangeNotifier {
       debugPrint('[EquipamentosIotViewModel] Erro ao acionar sirene: $e');
       rethrow;
     }
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
   }
 }
 

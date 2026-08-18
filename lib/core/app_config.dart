@@ -10,7 +10,9 @@ class AppConfig {
   }
 
   static String? _get(String key) {
-    return _mockEnv != null ? _mockEnv![key] : dotenv.env[key];
+    if (_mockEnv != null) return _mockEnv![key];
+    if (!dotenv.isInitialized) return null;
+    return dotenv.env[key];
   }
 
   /// Check whether the app is configured to use the Staging / Test environment.
@@ -42,6 +44,24 @@ class AppConfig {
       return _normalizeUrl(iot);
     }
     return apiUrl;
+  }
+
+  /// StreamServer API URL for VMS recording segments.
+  static String get streamServerApiUrl {
+    final url = _get('STREAMSERVER_API_URL')?.trim() ?? '';
+    return _normalizeUrl(url);
+  }
+
+  /// StreamServer Base Stream URL.
+  static String get streamServerStreamUrl {
+    final url = _get('STREAMSERVER_STREAM_URL')?.trim() ?? '';
+    return _normalizeUrl(url);
+  }
+
+  /// StreamServer Base HLS URL.
+  static String get streamServerHlsUrl {
+    final url = _get('STREAMSERVER_HLS_URL')?.trim() ?? '';
+    return _normalizeUrl(url);
   }
 
   /// Normalize URL to ensure it does not end with a trailing slash.

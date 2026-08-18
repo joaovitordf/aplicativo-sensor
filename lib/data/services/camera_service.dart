@@ -35,10 +35,7 @@ class CameraService {
             .where((camera) {
               // Ensure camera belongs to the requested client (prevent cross-client leak)
               if (clienteId <= 0) return true;
-              if (camera.clientId != null && camera.clientId! > 0) {
-                return camera.clientId == clienteId;
-              }
-              return camera.idCliente == clienteId || camera.idCliente == 0;
+              return camera.effectiveClientId == clienteId;
             })
             .toList();
         cameras.sort((a, b) => a.displayId.compareTo(b.displayId));

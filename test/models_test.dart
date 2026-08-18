@@ -489,6 +489,39 @@ void main() {
       expect(cli.solucoes, [1, 3]);
     });
   });
+
+  group('AuthUser Role and Perfil Tests', () {
+    test('Parse AuthUser with "perfil" when "role" is omitted', () {
+      final sample = {
+        "id": 5,
+        "client_id": 9,
+        "nome": "Super Usuário",
+        "username": "super.user",
+        "perfil": "superadmin"
+      };
+
+      final user = AuthUser.fromJson(sample);
+      expect(user.role, "superadmin");
+      expect(user.clientId, 9);
+    });
+
+    test('Camera effectiveClientId returns clientId or idCliente accurately for isolation', () {
+      final camWithBoth = Camera.fromJson({
+        "id": "1",
+        "client_id": 12,
+        "idCliente": "49",
+        "NomeCamera": "Cam 1"
+      });
+      expect(camWithBoth.effectiveClientId, 12);
+
+      final camWithLegacyOnly = Camera.fromJson({
+        "id": "2",
+        "idCliente": "49",
+        "NomeCamera": "Cam 2"
+      });
+      expect(camWithLegacyOnly.effectiveClientId, 49);
+    });
+  });
 }
 
 

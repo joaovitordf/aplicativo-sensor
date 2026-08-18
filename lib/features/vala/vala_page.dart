@@ -167,7 +167,7 @@ class _ValaView extends StatelessWidget {
 
   Widget _buildHeader(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
+      padding: const EdgeInsets.all(8.0),
       child: Row(
         children: [
           IconButton(
@@ -180,19 +180,35 @@ class _ValaView extends StatelessWidget {
               );
             },
           ),
-          const SizedBox(width: 4),
-          const Icon(
-            Icons.landscape,
-            color: kPalettePrimaryDark,
-            size: 24,
-          ),
-          const SizedBox(width: 8),
-          const Text(
-            'Detecção de Valas',
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: kPalettePrimaryDark,
+          Expanded(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: kBrandBlueLight,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.landscape,
+                    color: kBrandBlue,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Flexible(
+                  child: Text(
+                    'Detecção de Valas',
+                    style: TextStyle(
+                      fontSize: 22,
+                      fontWeight: FontWeight.bold,
+                      color: kBrandBlue,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
           ),
         ],
@@ -204,10 +220,10 @@ class _ValaView extends StatelessWidget {
     final fmt = DateFormat('dd/MM/yyyy');
     final startDateStr = viewModel.selectedStartDate != null
         ? fmt.format(viewModel.selectedStartDate!)
-        : 'Início';
+        : fmt.format(DateTime.now().subtract(const Duration(days: 6)));
     final endDateStr = viewModel.selectedEndDate != null
         ? fmt.format(viewModel.selectedEndDate!)
-        : 'Fim';
+        : fmt.format(DateTime.now());
 
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),

@@ -164,14 +164,12 @@ class _EquipamentosIotPageViewState extends State<_EquipamentosIotPageView> {
 
   Widget _buildHeader(
       BuildContext context, EquipamentosIotViewModel viewModel) {
-    return Container(
-      color: Colors.white,
-      padding: const EdgeInsets.symmetric(horizontal: 12.0, vertical: 10.0),
+    return Padding(
+      padding: const EdgeInsets.all(8.0),
       child: Row(
         children: [
           IconButton(
-            icon: const Icon(Icons.arrow_back,
-                size: 24, color: kPalettePrimaryDark),
+            icon: const Icon(Icons.arrow_back, size: 24),
             tooltip: 'Voltar ao Início',
             onPressed: () {
               Navigator.pushAndRemoveUntil(
@@ -181,25 +179,42 @@ class _EquipamentosIotPageViewState extends State<_EquipamentosIotPageView> {
               );
             },
           ),
-          const SizedBox(width: 4),
-          const Icon(Icons.memory, color: kPaletteDeepBlue, size: 26),
-          const SizedBox(width: 10),
-          const Expanded(
-            child: Text(
-              'Equipamentos IoT',
-              style: TextStyle(
-                fontSize: 18,
-                fontWeight: FontWeight.bold,
-                color: kPalettePrimaryDark,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
+          Expanded(
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: kBrandBlueLight,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: const Icon(
+                    Icons.memory,
+                    color: kBrandBlue,
+                    size: 24,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                const Flexible(
+                  child: Text(
+                    'Equipamentos IoT',
+                    style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: kBrandBlue,
+                    ),
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ],
             ),
           ),
+          const SizedBox(width: 6),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
             decoration: BoxDecoration(
-              color: kPaletteAccentBlue.withValues(alpha: 0.12),
+              color: kBrandBlueLight,
               borderRadius: BorderRadius.circular(12),
             ),
             child: Text(
@@ -543,11 +558,14 @@ class _EquipamentosIotPageViewState extends State<_EquipamentosIotPageView> {
                   item.isOnline ? Icons.campaign : Icons.campaign_outlined,
                   size: 20,
                 ),
-                label: Text(
-                  item.isOnline
-                      ? 'Acionar Sirene'
-                      : 'Sirene Indisponível (Inativo)',
-                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                label: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    item.isOnline
+                        ? 'Acionar Sirene'
+                        : 'Sirene Indisponível (Inativo)',
+                    style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                  ),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFD32F2F),
@@ -567,16 +585,20 @@ class _EquipamentosIotPageViewState extends State<_EquipamentosIotPageView> {
               const SizedBox(height: 6),
               Row(
                 mainAxisAlignment: MainAxisAlignment.center,
+                crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
                   Icon(Icons.info_outline,
                       size: 13, color: Colors.orange.shade800),
                   const SizedBox(width: 4),
-                  Text(
-                    'Equipamento inativo. O envio para sirene está bloqueado.',
-                    style: TextStyle(
-                      fontSize: 11,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.orange.shade900,
+                  Expanded(
+                    child: Text(
+                      'Equipamento inativo. O envio para sirene está bloqueado.',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w500,
+                        color: Colors.orange.shade900,
+                      ),
+                      textAlign: TextAlign.center,
                     ),
                   ),
                 ],
@@ -599,27 +621,50 @@ class _EquipamentosIotPageViewState extends State<_EquipamentosIotPageView> {
       builder: (dialogContext) {
         return _SireneConfirmationDialog(
           equipamento: item,
-          onConfirm: () {
-            viewModel.acionarSirene(id: item.id ?? 0);
+          onConfirm: () async {
             Navigator.of(dialogContext).pop();
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(
-                content: const Row(
-                  children: [
-                    Icon(Icons.campaign, color: Colors.white, size: 20),
-                    SizedBox(width: 8),
-                    Expanded(
-                      child: Text('Comando de sirene enviado com sucesso!'),
-                    ),
-                  ],
+            try {
+              await viewModel.acionarSirene(id: item.id ?? 0);
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: const Row(
+                    children: [
+                      Icon(Icons.campaign, color: Colors.white, size: 20),
+                      SizedBox(width: 8),
+                      Expanded(
+                        child: Text('Comando de sirene enviado com sucesso!'),
+                      ),
+                    ],
+                  ),
+                  backgroundColor: const Color(0xFF2E7D32),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  duration: const Duration(seconds: 3),
                 ),
-                backgroundColor: const Color(0xFF2E7D32),
-                behavior: SnackBarBehavior.floating,
-                shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10)),
-                duration: const Duration(seconds: 3),
-              ),
-            );
+              );
+            } catch (e) {
+              if (!context.mounted) return;
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(
+                  content: Row(
+                    children: [
+                      const Icon(Icons.error_outline, color: Colors.white, size: 20),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text('Erro ao acionar sirene: $e'),
+                      ),
+                    ],
+                  ),
+                  backgroundColor: const Color(0xFFD32F2F),
+                  behavior: SnackBarBehavior.floating,
+                  shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10)),
+                  duration: const Duration(seconds: 4),
+                ),
+              );
+            }
           },
         );
       },
@@ -765,6 +810,7 @@ class _SireneConfirmationDialogState extends State<_SireneConfirmationDialog> {
   Widget build(BuildContext context) {
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       titlePadding: EdgeInsets.zero,
       title: Container(
         padding: const EdgeInsets.all(20),
@@ -792,7 +838,7 @@ class _SireneConfirmationDialogState extends State<_SireneConfirmationDialog> {
           ],
         ),
       ),
-      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+      contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -801,7 +847,7 @@ class _SireneConfirmationDialogState extends State<_SireneConfirmationDialog> {
             const Text(
               'Tem certeza que deseja acionar a sirene?',
               style: TextStyle(
-                fontSize: 15,
+                fontSize: 14.5,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF1E293B),
               ),
@@ -829,6 +875,8 @@ class _SireneConfirmationDialogState extends State<_SireneConfirmationDialog> {
                             fontWeight: FontWeight.bold,
                             color: Color(0xFF1E293B),
                           ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
                         ),
                         Text(
                           'ID: #${widget.equipamento.id ?? '-'}',
@@ -870,7 +918,7 @@ class _SireneConfirmationDialogState extends State<_SireneConfirmationDialog> {
           ],
         ),
       ),
-      actionsPadding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
+      actionsPadding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       actions: [
         Row(
           children: [
@@ -878,7 +926,7 @@ class _SireneConfirmationDialogState extends State<_SireneConfirmationDialog> {
               child: OutlinedButton(
                 onPressed: () => Navigator.of(context).pop(),
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                   side: BorderSide(color: Colors.grey.shade400),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -893,21 +941,24 @@ class _SireneConfirmationDialogState extends State<_SireneConfirmationDialog> {
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: _isButtonEnabled ? widget.onConfirm : null,
                 icon: Icon(
                   _isButtonEnabled ? Icons.campaign : Icons.hourglass_top,
-                  size: 18,
+                  size: 16,
                 ),
-                label: Text(
-                  _isButtonEnabled
-                      ? 'Confirmar'
-                      : 'Aguarde (${_remainingSeconds}s)',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
+                label: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    _isButtonEnabled
+                        ? 'Confirmar'
+                        : 'Aguarde (${_remainingSeconds}s)',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
@@ -917,7 +968,7 @@ class _SireneConfirmationDialogState extends State<_SireneConfirmationDialog> {
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: Colors.grey.shade300,
                   disabledForegroundColor: Colors.grey.shade600,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),

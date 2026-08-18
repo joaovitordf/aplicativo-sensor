@@ -30,6 +30,14 @@ class AlertaViewModel extends ChangeNotifier {
     loadEvents();
   }
 
+  bool _isDisposed = false;
+
+  void _safeNotifyListeners() {
+    if (!_isDisposed) {
+      notifyListeners();
+    }
+  }
+
   // ─── State ──────────────────────────────────────────────────────────────────
   bool isLoading = false;
   bool isLoadingCameras = false;
@@ -66,7 +74,7 @@ class AlertaViewModel extends ChangeNotifier {
     final cId = clientId;
     if (cId == null) {
       errorMessage = 'ID do cliente não encontrado.';
-      notifyListeners();
+      _safeNotifyListeners();
       return;
     }
 
@@ -76,7 +84,7 @@ class AlertaViewModel extends ChangeNotifier {
     if (page == 1) {
       maxKnownPage = 1;
     }
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       final startStr = selectedStartDate != null
@@ -102,7 +110,7 @@ class AlertaViewModel extends ChangeNotifier {
         hasNextPage = false;
         isLoading = false;
         successMessage = 'Você chegou à última página.';
-        notifyListeners();
+        _safeNotifyListeners();
         return;
       }
 
@@ -117,11 +125,11 @@ class AlertaViewModel extends ChangeNotifier {
         maxKnownPage = page + 1;
       }
       isLoading = false;
-      notifyListeners();
+      _safeNotifyListeners();
     } catch (e) {
       isLoading = false;
       errorMessage = 'Erro ao carregar eventos de EPI: $e';
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
@@ -147,7 +155,7 @@ class AlertaViewModel extends ChangeNotifier {
     if (cId == null) return;
 
     isLoadingCameras = true;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       final list = await _cameraService.getCamerasByClient(cId);
@@ -158,7 +166,7 @@ class AlertaViewModel extends ChangeNotifier {
       cameras = [];
     } finally {
       isLoadingCameras = false;
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
@@ -312,13 +320,15 @@ class AlertaViewModel extends ChangeNotifier {
       await _showDownloadNotification('Erro', e.toString(), success: false);
     } finally {
       isDownloading = false;
-      notifyListeners();
+      _safeNotifyListeners();
     }
 
     Future.delayed(const Duration(seconds: 4), () {
-      successMessage = null;
-      errorMessage = null;
-      notifyListeners();
+      if (!_isDisposed) {
+        successMessage = null;
+        errorMessage = null;
+        _safeNotifyListeners();
+      }
     });
   }
 
@@ -348,5 +358,11 @@ class AlertaViewModel extends ChangeNotifier {
         ),
       );
     } catch (_) {}
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
   }
 }

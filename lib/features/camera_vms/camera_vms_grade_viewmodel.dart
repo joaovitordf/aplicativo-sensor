@@ -6,12 +6,17 @@ import 'package:sensortech/data/models/recording_model.dart';
 import 'package:sensortech/data/models/camera_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
-/// ViewModel for the Câmera VMS Grade (grid listing) screen.
-/// Loads cameras via CameraService, builds Recording entries (segments are lazy
-/// loaded when the user opens a specific camera player).
 class CameraVmsGradeViewModel extends ChangeNotifier {
   final AuthController _auth;
   final CameraService _cameraService;
+
+  bool _isDisposed = false;
+
+  void _safeNotifyListeners() {
+    if (!_isDisposed) {
+      notifyListeners();
+    }
+  }
 
   CameraVmsGradeViewModel({
     required AuthController auth,
@@ -39,24 +44,27 @@ class CameraVmsGradeViewModel extends ChangeNotifier {
   Future<void> loadData() async {
     isLoading = true;
     dataError = null;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       await _loadCameras();
       await _loadThumbnails();
 
+      if (_isDisposed) return;
       isLoading = false;
-      notifyListeners();
+      _safeNotifyListeners();
     } catch (e) {
+      if (_isDisposed) return;
       dataError = 'Erro ao carregar câmeras. Tente novamente.';
       isLoading = false;
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
   Future<void> _loadThumbnails() async {
     try {
       final prefs = await SharedPreferences.getInstance();
+      if (_isDisposed) return;
       for (final recording in _allRecordings) {
         final id = recording.cameraInfo?.id.toString() ??
             recording.name.replaceAll('/', '_');
@@ -65,7 +73,7 @@ class CameraVmsGradeViewModel extends ChangeNotifier {
           thumbnails[id] = path;
         }
       }
-      notifyListeners();
+      _safeNotifyListeners();
     } catch (e) {
       debugPrint('[VMS Grade] Error loading thumbnails: $e');
     }
@@ -116,7 +124,7 @@ class CameraVmsGradeViewModel extends ChangeNotifier {
       return true;
     }).toList();
 
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   void onSearchChange(String text) {
@@ -133,5 +141,11 @@ class CameraVmsGradeViewModel extends ChangeNotifier {
       linkHLS: camera.linkHLS,
       idP2p: camera.idCameraP2p,
     );
+  }
+
+  @override
+  void dispose() {
+    _isDisposed = true;
+    super.dispose();
   }
 }

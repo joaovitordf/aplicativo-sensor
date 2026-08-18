@@ -515,34 +515,71 @@ class _CameraVmsPageView extends StatelessWidget {
     }
 
     final linkedIot = viewModel.linkedIotEquipamento;
+    final isIotOnline = linkedIot != null && linkedIot.isOnline;
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 8.0),
-      child: SizedBox(
-        width: double.infinity,
-        child: ElevatedButton.icon(
-          onPressed: () => _showSireneCameraModal(context, camera!, linkedIot, viewModel),
-          icon: const Icon(
-            Icons.campaign,
-            size: 20,
-          ),
-          label: const Text(
-            'Acionar Sirene',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              fontSize: 13,
+      child: Column(
+        children: [
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton.icon(
+              onPressed: isIotOnline
+                  ? () => _showSireneCameraModal(context, camera!, linkedIot, viewModel)
+                  : null,
+              icon: Icon(
+                isIotOnline ? Icons.campaign : Icons.campaign_outlined,
+                size: 20,
+              ),
+              label: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  isIotOnline
+                      ? 'Acionar Sirene'
+                      : 'Sirene Indisponível (Inativo)',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                  ),
+                ),
+              ),
+              style: ElevatedButton.styleFrom(
+                backgroundColor: const Color(0xFFD32F2F),
+                foregroundColor: Colors.white,
+                disabledBackgroundColor: Colors.grey.shade300,
+                disabledForegroundColor: Colors.grey.shade600,
+                padding: const EdgeInsets.symmetric(vertical: 12),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                elevation: isIotOnline ? 2 : 0,
+              ),
             ),
           ),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: const Color(0xFFD32F2F),
-            foregroundColor: Colors.white,
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10),
+          if (!isIotOnline) ...[
+            const SizedBox(height: 6),
+            Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                Icon(Icons.info_outline,
+                    size: 13, color: Colors.orange.shade800),
+                const SizedBox(width: 4),
+                Expanded(
+                  child: Text(
+                    'Equipamento inativo. O envio para sirene está bloqueado.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.orange.shade900,
+                    ),
+                    textAlign: TextAlign.center,
+                  ),
+                ),
+              ],
             ),
-            elevation: 2,
-          ),
-        ),
+          ],
+        ],
       ),
     );
   }
@@ -848,6 +885,7 @@ class _SireneCameraConfirmationDialogState
 
     return AlertDialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+      insetPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
       titlePadding: EdgeInsets.zero,
       title: Container(
         padding: const EdgeInsets.all(20),
@@ -875,7 +913,7 @@ class _SireneCameraConfirmationDialogState
           ],
         ),
       ),
-      contentPadding: const EdgeInsets.fromLTRB(24, 20, 24, 0),
+      contentPadding: const EdgeInsets.fromLTRB(20, 16, 20, 0),
       content: SingleChildScrollView(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -884,7 +922,7 @@ class _SireneCameraConfirmationDialogState
             const Text(
               'Tem certeza que deseja acionar a sirene vinculada a esta câmera?',
               style: TextStyle(
-                fontSize: 15,
+                fontSize: 14.5,
                 fontWeight: FontWeight.w600,
                 color: Color(0xFF1E293B),
               ),
@@ -923,16 +961,21 @@ class _SireneCameraConfirmationDialogState
                     children: [
                       const Icon(Icons.memory, size: 16, color: Color(0xFF455A64)),
                       const SizedBox(width: 8),
-                      Text(
-                        'Vínculo IoT (idRasp): ',
-                        style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
-                      ),
-                      Text(
-                        '#${camera.idRasp ?? '-'}',
-                        style: const TextStyle(
-                          fontSize: 12,
-                          fontWeight: FontWeight.bold,
-                          color: kPaletteDeepBlue,
+                      Expanded(
+                        child: Text.rich(
+                          TextSpan(
+                            text: 'Vínculo IoT (idRasp): ',
+                            style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                            children: [
+                              TextSpan(
+                                text: '#${camera.idRasp ?? '-'}',
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                  color: kPaletteDeepBlue,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ],
@@ -947,16 +990,23 @@ class _SireneCameraConfirmationDialogState
                           color: isIotOnline ? const Color(0xFF16A34A) : const Color(0xFFD97706),
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          'Status MQTT: ',
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
-                        ),
-                        Text(
-                          isIotOnline ? 'Online (Conectado)' : 'Offline (Desconectado)',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: isIotOnline ? const Color(0xFF16A34A) : const Color(0xFFD97706),
+                        Expanded(
+                          child: Text.rich(
+                            TextSpan(
+                              text: 'Status MQTT: ',
+                              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                              children: [
+                                TextSpan(
+                                  text: isIotOnline ? 'Online (Conectado)' : 'Offline (Desconectado)',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: isIotOnline ? const Color(0xFF16A34A) : const Color(0xFFD97706),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
                           ),
                         ),
                       ],
@@ -970,16 +1020,21 @@ class _SireneCameraConfirmationDialogState
                           color: isIotAtivo ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
                         ),
                         const SizedBox(width: 8),
-                        Text(
-                          'Equipamento: ',
-                          style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
-                        ),
-                        Text(
-                          isIotAtivo ? 'Ativo' : 'Inativo',
-                          style: TextStyle(
-                            fontSize: 12,
-                            fontWeight: FontWeight.bold,
-                            color: isIotAtivo ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                        Expanded(
+                          child: Text.rich(
+                            TextSpan(
+                              text: 'Equipamento: ',
+                              style: TextStyle(fontSize: 12, color: Colors.grey.shade700),
+                              children: [
+                                TextSpan(
+                                  text: isIotAtivo ? 'Ativo' : 'Inativo',
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: isIotAtivo ? const Color(0xFF16A34A) : const Color(0xFFDC2626),
+                                  ),
+                                ),
+                              ],
+                            ),
                           ),
                         ),
                       ],
@@ -1015,7 +1070,7 @@ class _SireneCameraConfirmationDialogState
           ],
         ),
       ),
-      actionsPadding: const EdgeInsets.fromLTRB(24, 16, 24, 20),
+      actionsPadding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
       actions: [
         Row(
           children: [
@@ -1023,7 +1078,7 @@ class _SireneCameraConfirmationDialogState
               child: OutlinedButton(
                 onPressed: () => Navigator.of(context).pop(),
                 style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                   side: BorderSide(color: Colors.grey.shade400),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
@@ -1038,21 +1093,24 @@ class _SireneCameraConfirmationDialogState
                 ),
               ),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
               child: ElevatedButton.icon(
                 onPressed: _isButtonEnabled ? widget.onConfirm : null,
                 icon: Icon(
                   _isButtonEnabled ? Icons.campaign : Icons.hourglass_top,
-                  size: 18,
+                  size: 16,
                 ),
-                label: Text(
-                  _isButtonEnabled
-                      ? 'Confirmar'
-                      : 'Aguarde (${_remainingSeconds}s)',
-                  style: const TextStyle(
-                    fontWeight: FontWeight.bold,
-                    fontSize: 13,
+                label: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    _isButtonEnabled
+                        ? 'Confirmar'
+                        : 'Aguarde (${_remainingSeconds}s)',
+                    style: const TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
                   ),
                 ),
                 style: ElevatedButton.styleFrom(
@@ -1062,7 +1120,7 @@ class _SireneCameraConfirmationDialogState
                   foregroundColor: Colors.white,
                   disabledBackgroundColor: Colors.grey.shade300,
                   disabledForegroundColor: Colors.grey.shade600,
-                  padding: const EdgeInsets.symmetric(vertical: 12),
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
