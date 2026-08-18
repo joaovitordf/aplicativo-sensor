@@ -178,6 +178,7 @@ void main() {
         "id": "45",
         "idCameraP2p": null,
         "idCliente": "49",
+        "idRasp": 11,
         "last_seen": null,
         "linkHLS": "http://streamserver.example.com:8888/8/45/index.m3u8",
         "linkcamera": "rtsp://admin:123456@192.168.1.100:554/stream",
@@ -189,6 +190,8 @@ void main() {
 
       expect(camera.id, 45);
       expect(camera.cameraId, 24);
+      expect(camera.clientId, 8);
+      expect(camera.idRasp, 11);
       expect(camera.displayId, 24);
       expect(camera.nomeCamera, "BBLENG - CAM-1A2 - ENG7H46 - EQUIPE6 - CAM02 - 1");
       expect(camera.idCliente, 49);
@@ -200,6 +203,39 @@ void main() {
       expect(camera.hasRTSPStream, true);
       expect(camera.vmsPathName, "49/45");
       expect(camera.confMin, 0.6);
+    });
+
+    test('Parse Camera correctly from staging response with idRasp and string id', () {
+      final sampleJson = {
+        "NomeCamera": "BBLENG - DOME - R12 1A2 - CAM11 - 2",
+        "agent_enabled": 1,
+        "camera_id": 27,
+        "client_id": 12,
+        "conf_min": 0.4,
+        "conformity_interval": 0,
+        "cooldown_min": 5,
+        "created": "2026-08-12 22:42:32",
+        "id": "384",
+        "idCameraP2p": 349,
+        "idCliente": "49",
+        "idRasp": 9,
+        "linkHLS": "https://vtmsaopaulo.ezvizlife.com:4443/v3/openlive/L57855427_1_1.m3u8",
+        "linkcamera": "https://vtmsaopaulo.ezvizlife.com:4443/v3/openlive/L57855427_1_1.m3u8",
+        "location": "SP",
+        "persistence_sec": 5,
+        "solution": "EPI",
+        "status": "unknown"
+      };
+
+      final camera = Camera.fromJson(sampleJson);
+
+      expect(camera.id, 384);
+      expect(camera.cameraId, 27);
+      expect(camera.clientId, 12);
+      expect(camera.idRasp, 9);
+      expect(camera.idCliente, 49);
+      expect(camera.idCameraP2p, 349);
+      expect(camera.localizacao, "SP");
     });
   });
 
@@ -309,6 +345,96 @@ void main() {
       // Test offline case
       final offlineEq = eq.copyWith(statusMqtt: 0);
       expect(offlineEq.isOnline, false);
+    });
+
+    test('Parse EquipamentoIot sample with idRasp and solucoes from API', () {
+      final sample = {
+        "id": 11,
+        "nomeEquipamento": "1005",
+        "enderecoInstalacao": " ",
+        "modeloEquipamento": "1005",
+        "localizacao": "casa willians",
+        "tipoConexao": 1,
+        "idCliente": 49,
+        "enabled": 1,
+        "idRasp": 1005,
+        "statusMqtt": 0,
+        "solucoes": [
+          {
+            "id": 104,
+            "idEquipamentoIoT": 11,
+            "idCliente": 49,
+            "idSolucao": 1,
+            "enabled": 1
+          }
+        ],
+        "idSolucoes": [1, 24, 25]
+      };
+
+      final eq = EquipamentoIot.fromJson(sample);
+
+      expect(eq.id, 11);
+      expect(eq.idRasp, 1005);
+      expect(eq.idCliente, 49);
+      expect(eq.solucoes?.length, 1);
+      expect(eq.solucoes?.first.idSolucao, 1);
+      expect(eq.idSolucoes, [1, 24, 25]);
+    });
+
+    test('Multi-tenant correlation: Camera idRasp matches EquipamentoIot id or idRasp', () {
+      final clientCameras = [
+        Camera(
+          id: 45,
+          cameraId: 17,
+          clientId: 12,
+          idRasp: 11,
+          nomeCamera: 'CAM 1',
+          linkcamera: '',
+          linkHLS: '',
+          tipoConexao: 1,
+          idCliente: 49,
+          gravar: 0,
+          enabled: 1,
+        ),
+        Camera(
+          id: 384,
+          cameraId: 27,
+          clientId: 12,
+          idRasp: 9,
+          nomeCamera: 'CAM 2',
+          linkcamera: '',
+          linkHLS: '',
+          tipoConexao: 1,
+          idCliente: 49,
+          gravar: 0,
+          enabled: 1,
+        ),
+      ];
+
+      final allEquipamentos = [
+        EquipamentoIot(id: 11, nomeEquipamento: '1005', idCliente: 49, idRasp: 1005),
+        EquipamentoIot(id: 9, nomeEquipamento: '1003', idCliente: 49, idRasp: 1003),
+        EquipamentoIot(id: 99, nomeEquipamento: 'Other Client', idCliente: 50, idRasp: 9999),
+      ];
+
+      final clientRaspIds = clientCameras
+          .map((c) => c.idRasp)
+          .where((id) => id != null && id > 0)
+          .cast<int>()
+          .toSet();
+
+      expect(clientRaspIds, containsAll([11, 9]));
+
+      final filtered = allEquipamentos.where((eq) {
+        final matchesRasp = (eq.id != null && clientRaspIds.contains(eq.id)) ||
+            (eq.idRasp != null && clientRaspIds.contains(eq.idRasp));
+        final matchesClient = eq.idCliente == 12;
+        return matchesRasp || matchesClient;
+      }).toList();
+
+      expect(filtered.length, 2);
+      expect(filtered.map((e) => e.id), containsAll([11, 9]));
+      expect(filtered.any((e) => e.id == 99), false);
     });
   });
 

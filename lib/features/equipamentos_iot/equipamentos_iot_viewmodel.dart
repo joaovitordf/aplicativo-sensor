@@ -4,33 +4,41 @@ import 'package:sensortech/features/auth/auth_controller.dart';
 import 'package:sensortech/data/models/equipamento_iot_model.dart';
 import 'package:sensortech/data/models/cliente_detailed_model.dart';
 import 'package:sensortech/data/models/solution_model.dart';
+import 'package:sensortech/data/models/camera_model.dart';
 import 'package:sensortech/data/services/equipamento_iot_service.dart';
 import 'package:sensortech/data/services/cliente_service.dart';
 import 'package:sensortech/data/services/solution_service.dart';
+import 'package:sensortech/data/services/camera_service.dart';
 
 class EquipamentosIotViewModel extends ChangeNotifier {
   final AuthController _auth;
   final EquipamentoIotService _equipamentoService;
   final ClienteService _clienteService;
   final SolutionService _solutionService;
+  final CameraService _cameraService;
 
   EquipamentosIotViewModel({
     required AuthController auth,
     required EquipamentoIotService equipamentoService,
     required ClienteService clienteService,
     required SolutionService solutionService,
+    required CameraService cameraService,
   })  : _auth = auth,
         _equipamentoService = equipamentoService,
         _clienteService = clienteService,
-        _solutionService = solutionService;
+        _solutionService = solutionService,
+        _cameraService = cameraService;
 
   bool _isLoading = false;
   String? _errorMessage;
 
+  List<EquipamentoIot> _rawMappedEquipamentos = [];
   List<EquipamentoIot> _allEquipamentos = [];
   List<EquipamentoIot> _filteredEquipamentos = [];
   List<ClienteDetailed> _clientes = [];
   List<Solution> _solutions = [];
+  List<Camera> _clientCameras = [];
+  final Map<int, Set<int>> _cachedClientRaspIds = {};
 
   int? _selectedClienteId;
   String _selectedFilter = 'all'; // 'all', 'online', 'offline', 'ativo', 'inativo'
@@ -43,6 +51,7 @@ class EquipamentosIotViewModel extends ChangeNotifier {
   List<EquipamentoIot> get equipamentos => _filteredEquipamentos;
   List<ClienteDetailed> get clientes => _clientes;
   List<Solution> get solutions => _solutions;
+  List<Camera> get clientCameras => _clientCameras;
 
   int? get selectedClienteId => _selectedClienteId;
   String get selectedFilter => _selectedFilter;
@@ -58,6 +67,8 @@ class EquipamentosIotViewModel extends ChangeNotifier {
     notifyListeners();
 
     try {
+      final currentClientId = _auth.clientId;
+
       // 1. Load solutions catalog
       final solFutures = _solutionService.list().catchError((e) {
         debugPrint('[EquipamentosIotViewModel] Error loading solutions: $e');
@@ -76,20 +87,40 @@ class EquipamentosIotViewModel extends ChangeNotifier {
         return <EquipamentoIot>[];
       });
 
+      // 4. Load client cameras to obtain valid idRasp hardware mappings
+      final camFuture = (currentClientId != null && currentClientId > 0)
+          ? _cameraService.getCamerasByClient(currentClientId).catchError((e) {
+              debugPrint('[EquipamentosIotViewModel] Error loading cameras for client $currentClientId: $e');
+              return <Camera>[];
+            })
+          : Future.value(<Camera>[]);
+
       final solResult = await solFutures;
       final cliResult = await cliFutures;
       final eqResult = await eqFuture;
+      final camResult = await camFuture;
 
       _solutions = solResult;
       _clientes = cliResult;
-      var rawList = eqResult;
+      _clientCameras = camResult;
+
+      if (currentClientId != null && currentClientId > 0) {
+        final raspIds = <int>{};
+        for (final cam in camResult) {
+          if (cam.idRasp != null && cam.idRasp! > 0) {
+            raspIds.add(cam.idRasp!);
+          }
+        }
+        _cachedClientRaspIds[currentClientId] = raspIds;
+      }
 
       // Map client names onto equipment items
-      _allEquipamentos = rawList.map((item) {
+      _rawMappedEquipamentos = eqResult.map((item) {
         final clientName = _findClienteNome(item.idCliente);
         return item.copyWith(nomeCliente: clientName);
       }).toList();
 
+      _filterEquipamentosForCurrentRole();
       _applyFilters();
     } catch (e) {
       _errorMessage = 'Erro ao carregar equipamentos IoT. Tente novamente.';
@@ -97,6 +128,24 @@ class EquipamentosIotViewModel extends ChangeNotifier {
     } finally {
       _isLoading = false;
       notifyListeners();
+    }
+  }
+
+  void _filterEquipamentosForCurrentRole() {
+    final currentClientId = _auth.clientId;
+
+    if (!isSuperAdmin && currentClientId != null && currentClientId > 0) {
+      final allowedRaspIds = _cachedClientRaspIds[currentClientId] ?? <int>{};
+
+      _allEquipamentos = _rawMappedEquipamentos.where((item) {
+        final matchesRasp = (item.id != null && allowedRaspIds.contains(item.id)) ||
+            (item.idRasp != null && allowedRaspIds.contains(item.idRasp));
+        final matchesClient = item.idCliente == currentClientId;
+
+        return matchesRasp || matchesClient;
+      }).toList();
+    } else {
+      _allEquipamentos = List.from(_rawMappedEquipamentos);
     }
   }
 
@@ -139,8 +188,24 @@ class EquipamentosIotViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setSelectedCliente(int? clienteId) {
+  Future<void> setSelectedCliente(int? clienteId) async {
     _selectedClienteId = clienteId;
+
+    if (clienteId != null && clienteId > 0 && !_cachedClientRaspIds.containsKey(clienteId)) {
+      try {
+        final cameras = await _cameraService.getCamerasByClient(clienteId);
+        final raspIds = <int>{};
+        for (final cam in cameras) {
+          if (cam.idRasp != null && cam.idRasp! > 0) {
+            raspIds.add(cam.idRasp!);
+          }
+        }
+        _cachedClientRaspIds[clienteId] = raspIds;
+      } catch (e) {
+        debugPrint('[EquipamentosIotViewModel] Error caching cameras for client $clienteId: $e');
+      }
+    }
+
     _applyFilters();
     notifyListeners();
   }
@@ -153,9 +218,16 @@ class EquipamentosIotViewModel extends ChangeNotifier {
 
   void _applyFilters() {
     _filteredEquipamentos = _allEquipamentos.where((item) {
-      // Filter by Client if user selected one
-      if (_selectedClienteId != null && item.idCliente != _selectedClienteId) {
-        return false;
+      // Filter by Client if user/admin selected one
+      if (_selectedClienteId != null) {
+        final allowedRaspIds = _cachedClientRaspIds[_selectedClienteId] ?? <int>{};
+        final matchesRasp = (item.id != null && allowedRaspIds.contains(item.id)) ||
+            (item.idRasp != null && allowedRaspIds.contains(item.idRasp));
+        final matchesClient = item.idCliente == _selectedClienteId;
+
+        if (!matchesRasp && !matchesClient) {
+          return false;
+        }
       }
 
       // Filter by Status (Ativo = Online/Conectado, Inativo = Offline)
@@ -212,3 +284,4 @@ class EquipamentosIotViewModel extends ChangeNotifier {
     }
   }
 }
+

@@ -32,6 +32,14 @@ class CameraService {
 
         final cameras = cameraList
             .map((json) => Camera.fromJson(json as Map<String, dynamic>))
+            .where((camera) {
+              // Ensure camera belongs to the requested client (prevent cross-client leak)
+              if (clienteId <= 0) return true;
+              if (camera.clientId != null && camera.clientId! > 0) {
+                return camera.clientId == clienteId;
+              }
+              return camera.idCliente == clienteId || camera.idCliente == 0;
+            })
             .toList();
         cameras.sort((a, b) => a.displayId.compareTo(b.displayId));
         return cameras;
@@ -46,3 +54,4 @@ class CameraService {
     }
   }
 }
+

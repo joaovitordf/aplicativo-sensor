@@ -55,6 +55,17 @@ class PpeService {
         final parsed = PpeEventsResponse.fromJson(
           response.data as Map<String, dynamic>,
         );
+
+        // Multi-tenant check: ensure returned events belong to the requested client (prevent cross-client leak)
+        if (clientId > 0) {
+          return parsed.events
+              .where((e) =>
+                  e.clientId == null ||
+                  e.clientId == 0 ||
+                  e.clientId == clientId)
+              .toList();
+        }
+
         return parsed.events;
       }
 

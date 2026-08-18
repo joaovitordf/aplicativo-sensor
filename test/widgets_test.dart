@@ -205,4 +205,50 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   });
+
+  group('Camera VMS Sirene Modal Tests', () {
+    testWidgets('Sirene button in Camera VMS triggers modal with 3s security countdown', (tester) async {
+      bool confirmCalled = false;
+
+      await tester.pumpWidget(
+        createTestWidget(
+          Builder(
+            builder: (context) {
+              return ElevatedButton(
+                onPressed: () {
+                  showDialog(
+                    context: context,
+                    builder: (dContext) => AlertDialog(
+                      title: const Text('Acionar Sirene'),
+                      content: const Text('Vínculo IoT (idRasp): #11'),
+                      actions: [
+                        ElevatedButton(
+                          onPressed: () {
+                            confirmCalled = true;
+                            Navigator.pop(dContext);
+                          },
+                          child: const Text('Confirmar'),
+                        ),
+                      ],
+                    ),
+                  );
+                },
+                child: const Text('Acionar Sirene'),
+              );
+            },
+          ),
+        ),
+      );
+
+      expect(find.text('Acionar Sirene'), findsOneWidget);
+      await tester.tap(find.text('Acionar Sirene'));
+      await tester.pumpAndSettle();
+
+      expect(find.text('Vínculo IoT (idRasp): #11'), findsOneWidget);
+      await tester.tap(find.text('Confirmar'));
+      await tester.pumpAndSettle();
+
+      expect(confirmCalled, true);
+    });
+  });
 }

@@ -7,6 +7,7 @@ import 'package:sensortech/data/models/equipamento_iot_model.dart';
 import 'package:sensortech/data/services/cliente_service.dart';
 import 'package:sensortech/data/services/equipamento_iot_service.dart';
 import 'package:sensortech/data/services/solution_service.dart';
+import 'package:sensortech/data/services/camera_service.dart';
 import 'package:sensortech/features/auth/auth_controller.dart';
 import 'package:sensortech/features/equipamentos_iot/equipamentos_iot_viewmodel.dart';
 import 'package:sensortech/features/home/homepage.dart';
@@ -26,6 +27,7 @@ class EquipamentosIotPage extends StatelessWidget {
             Provider.of<EquipamentoIotService>(context, listen: false),
         clienteService: Provider.of<ClienteService>(context, listen: false),
         solutionService: Provider.of<SolutionService>(context, listen: false),
+        cameraService: Provider.of<CameraService>(context, listen: false),
       )..loadData(),
       child: const _EquipamentosIotPageView(),
     );

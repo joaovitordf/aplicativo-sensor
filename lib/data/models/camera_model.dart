@@ -2,6 +2,8 @@
 class Camera {
   final int id;
   final int? cameraId;
+  final int? clientId;
+  final int? idRasp;
   final String nomeCamera;
   final String linkcamera;
   final String linkHLS;
@@ -46,6 +48,8 @@ class Camera {
   Camera({
     required this.id,
     this.cameraId,
+    this.clientId,
+    this.idRasp,
     required this.nomeCamera,
     required this.linkcamera,
     required this.linkHLS,
@@ -95,11 +99,17 @@ class Camera {
       return value.toString();
     }
 
+    final parsedClientId = int.tryParse((json['client_id'] ?? json['clientId'])?.toString() ?? '');
+    final parsedIdRasp = int.tryParse((json['idRasp'] ?? json['id_rasp'])?.toString() ?? '');
+    final parsedLegacyIdCliente = int.tryParse((json['idCliente'] ?? json['client_id'] ?? '0').toString()) ?? 0;
+
     return Camera(
       id: int.tryParse(json['id'].toString()) ?? 0,
       cameraId: json['camera_id'] != null
           ? int.tryParse(json['camera_id'].toString())
           : null,
+      clientId: parsedClientId,
+      idRasp: parsedIdRasp,
       nomeCamera: json['NomeCamera'] as String? ?? '',
       linkcamera: json['linkcamera'] as String? ?? '',
       linkHLS: json['linkHLS'] as String? ?? '',
@@ -110,14 +120,14 @@ class Camera {
               '0')
           .toString()) ??
           0,
-      idCliente: int.tryParse((json['idCliente'] ?? json['client_id'] ?? '0').toString()) ?? 0,
+      idCliente: parsedLegacyIdCliente,
       gravar: json['gravar'] as int? ?? 0,
       enabled: json['enabled'] as int? ?? 1,
-      localizacao: toStringOrNull(json['Localizacao']),
+      localizacao: toStringOrNull(json['Localizacao'] ?? json['location']),
       endCam: toStringOrNull(json['EndCam']),
       modeloCam: toStringOrNull(json['modeloCam']),
       localEmp: toStringOrNull(json['localEmp']),
-      dataHora: toStringOrNull(json['dataHora']),
+      dataHora: toStringOrNull(json['dataHora'] ?? json['created']),
       idSolucao: json['idSolucao'] as int?,
       resolucao: toStringOrNull(json['resolucao']),
       numSerial: toStringOrNull(json['numSerial']),
@@ -135,7 +145,7 @@ class Camera {
       porta: toStringOrNull(json['porta']),
       caminho: toStringOrNull(json['caminho']),
       servidor: toStringOrNull(json['servidor']),
-      idCameraP2p: json['idCameraP2p'] as int?,
+      idCameraP2p: json['idCameraP2p'] != null ? int.tryParse(json['idCameraP2p'].toString()) : null,
       entradaSaida: json['entradaSaida'] as int?,
       agentEnabled: json['agent_enabled'] as int?,
       confMin: (json['conf_min'] as num?)?.toDouble(),
@@ -152,6 +162,9 @@ class Camera {
   /// Get the effective camera ID (camera_id if present, else id)
   int get displayId => cameraId ?? id;
 
+  /// Get the effective client ID (clientId if present, else legacy idCliente)
+  int get effectiveClientId => clientId ?? idCliente;
+
   /// Get the VMS path name (idCliente/idCamera) for recordings
   String get vmsPathName => '$idCliente/$id';
 
@@ -161,3 +174,4 @@ class Camera {
   /// Check if camera has RTSP stream available
   bool get hasRTSPStream => linkcamera.trim().isNotEmpty;
 }
+
