@@ -61,6 +61,7 @@ class EquipamentoIot {
   final int? statusIA;
   final int? idEquipamentoP2p;
   final int? idRasp;
+  final int? statusMqtt;
   final List<SolucaoEquipamento>? solucoes;
   final List<int>? idSolucoes;
   final String? nomeCliente;
@@ -88,12 +89,14 @@ class EquipamentoIot {
     this.statusIA,
     this.idEquipamentoP2p,
     this.idRasp,
+    this.statusMqtt,
     this.solucoes,
     this.idSolucoes,
     this.nomeCliente,
   });
 
   bool get isAtivo => (enabled ?? 0) == 1;
+  bool get isOnline => (statusMqtt ?? 0) == 1;
 
   factory EquipamentoIot.fromJson(Map<String, dynamic> json) {
     List<SolucaoEquipamento>? parsedSolucoes;
@@ -134,6 +137,7 @@ class EquipamentoIot {
       statusIA: int.tryParse(json['statusIA']?.toString() ?? ''),
       idEquipamentoP2p: int.tryParse(json['idEquipamentoP2p']?.toString() ?? ''),
       idRasp: int.tryParse(json['idRasp']?.toString() ?? ''),
+      statusMqtt: int.tryParse(json['statusMqtt']?.toString() ?? ''),
       solucoes: parsedSolucoes,
       idSolucoes: parsedIdSolucoes,
       nomeCliente: json['nomeCliente'] as String?,
@@ -163,6 +167,7 @@ class EquipamentoIot {
     int? statusIA,
     int? idEquipamentoP2p,
     int? idRasp,
+    int? statusMqtt,
     List<SolucaoEquipamento>? solucoes,
     List<int>? idSolucoes,
     String? nomeCliente,
@@ -190,6 +195,7 @@ class EquipamentoIot {
       statusIA: statusIA ?? this.statusIA,
       idEquipamentoP2p: idEquipamentoP2p ?? this.idEquipamentoP2p,
       idRasp: idRasp ?? this.idRasp,
+      statusMqtt: statusMqtt ?? this.statusMqtt,
       solucoes: solucoes ?? this.solucoes,
       idSolucoes: idSolucoes ?? this.idSolucoes,
       nomeCliente: nomeCliente ?? this.nomeCliente,
@@ -220,6 +226,7 @@ class EquipamentoIot {
       if (statusIA != null) 'statusIA': statusIA,
       if (idEquipamentoP2p != null) 'idEquipamentoP2p': idEquipamentoP2p,
       if (idRasp != null) 'idRasp': idRasp,
+      if (statusMqtt != null) 'statusMqtt': statusMqtt,
       if (solucoes != null) 'solucoes': solucoes!.map((s) => s.toJson()).toList(),
       if (idSolucoes != null) 'idSolucoes': idSolucoes,
       if (nomeCliente != null) 'nomeCliente': nomeCliente,

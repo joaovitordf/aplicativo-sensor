@@ -1,10 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:video_player/video_player.dart';
 import 'package:sensortech/data/services/vms_service.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
-import 'package:get_thumbnail_video/video_thumbnail.dart';
-import 'package:get_thumbnail_video/index.dart';
 import 'package:sensortech/data/models/recording_model.dart';
 
 /// ViewModel for the Câmera VMS player page.
@@ -38,7 +34,6 @@ class CameraVmsViewModel extends ChangeNotifier {
 
   final List<int?> fallbackDurations = [null, 600, 300];
 
-  bool _thumbnailCaptured = false;
   int _sessionId = 0;
   bool _isTransitioningSegment = false;
 
@@ -174,16 +169,6 @@ class CameraVmsViewModel extends ChangeNotifier {
       isPlaying = true;
       videoController!.addListener(_videoListener);
       notifyListeners();
-
-      // Capture thumbnail after a short delay
-      Future.delayed(const Duration(seconds: 2), () {
-        if (!_isDisposed &&
-            url == currentHlsUrl &&
-            videoController != null &&
-            videoController!.value.isInitialized) {
-          _captureThumbnail(url);
-        }
-      });
     }).catchError((error) {
       if (_isDisposed || url != currentHlsUrl) {
         controller.dispose();
@@ -231,13 +216,12 @@ class CameraVmsViewModel extends ChangeNotifier {
         ? segmentsForSelectedDate[index + 1]
         : null;
     final overrideDuration = fallbackDurations[fallbackLevel];
-    final format = (fallbackLevel > 0) ? 'mp4' : 'fmp4';
     final url = _vmsService.getSegmentUrl(
       cameraPath: selectedRecording!.name,
       segment: segment,
       nextSegment: nextSegment,
       overrideDuration: overrideDuration,
-      format: format,
+      format: 'mp4',
     );
     currentSegmentUrl = url;
     currentHlsUrl = null;
@@ -273,17 +257,6 @@ class CameraVmsViewModel extends ChangeNotifier {
       isPlaying = true;
       videoController!.addListener(_videoListener);
       notifyListeners();
-
-      // Capture thumbnail after a safe delay if not already captured
-      Future.delayed(const Duration(seconds: 2), () {
-        if (!_isDisposed &&
-            sessionId == _sessionId &&
-            url == currentSegmentUrl &&
-            videoController != null &&
-            videoController!.value.isInitialized) {
-          _captureThumbnail(url);
-        }
-      });
     }).catchError((error) {
       if (_isDisposed || sessionId != _sessionId || url != currentSegmentUrl) {
         controller.dispose();
@@ -322,84 +295,53 @@ class CameraVmsViewModel extends ChangeNotifier {
     final position = value.position;
     final duration = value.duration;
 
-    // Check if video reached the end
-    if (duration > Duration.zero &&
-        position >= duration &&
-        !_isTransitioningSegment) {
-      _isTransitioningSegment = true;
-      if (currentSegmentIndex >= 0 &&
-          currentSegmentIndex < segmentsForSelectedDate.length - 1) {
-        playSegment(currentSegmentIndex + 1);
-      } else {
-        if (isPlaying) {
-          isPlaying = false;
-          notifyListeners();
+    // Only process auto-advance for recordings (currentSegmentIndex >= 0)
+    if (currentSegmentIndex >= 0 &&
+        currentSegmentIndex < segmentsForSelectedDate.length &&
+        value.isInitialized) {
+      final currentSeg = segmentsForSelectedDate[currentSegmentIndex];
+      final nextSeg = currentSegmentIndex + 1 < segmentsForSelectedDate.length
+          ? segmentsForSelectedDate[currentSegmentIndex + 1]
+          : null;
+      final expectedDurationSec =
+          _vmsService.calculateSegmentDuration(currentSeg, nextSeg);
+
+      // Only consider naturally completed if:
+      // 1. Played at least almost the entire duration (expectedDurationSec - 2) AND > 5s
+      // 2. OR video reported a valid full duration (> 5s) and position reached within 500ms of it and isCompleted
+      final isNaturallyCompleted = (expectedDurationSec > 5 &&
+              position.inSeconds >= (expectedDurationSec - 2) &&
+              (value.isCompleted || !value.isPlaying)) ||
+          (duration.inSeconds >= 5 &&
+              duration.inSeconds >= (expectedDurationSec - 5) &&
+              position >= duration - const Duration(milliseconds: 500) &&
+              value.isCompleted);
+
+      if (isNaturallyCompleted && !_isTransitioningSegment) {
+        _isTransitioningSegment = true;
+        if (currentSegmentIndex < segmentsForSelectedDate.length - 1) {
+          final nextIndex = currentSegmentIndex + 1;
+          debugPrint(
+              '[Segment] Segment $currentSegmentIndex (${expectedDurationSec}s) finished. Advancing to segment $nextIndex');
+          Future.delayed(const Duration(milliseconds: 400), () {
+            if (!_isDisposed && _isTransitioningSegment) {
+              playSegment(nextIndex);
+            }
+          });
+        } else {
+          if (isPlaying) {
+            isPlaying = false;
+            notifyListeners();
+          }
         }
+        return;
       }
-      return;
     }
 
     final nowPlaying = value.isPlaying;
     if (nowPlaying != isPlaying) {
       isPlaying = nowPlaying;
       notifyListeners();
-    }
-  }
-
-  // ─── Thumbnail Capture ────────────────────────────────────────────────────
-  Future<void> _captureThumbnail(String originalUrl) async {
-    if (_thumbnailCaptured || selectedRecording == null || _isDisposed) return;
-
-    try {
-      final cameraInfo = selectedRecording!.cameraInfo;
-      final id = cameraInfo?.id.toString() ??
-          selectedRecording!.name.replaceAll('/', '_');
-
-      final prefs = await SharedPreferences.getInstance();
-      if (prefs.containsKey('thumb_$id')) {
-        _thumbnailCaptured = true;
-        return;
-      }
-
-      _thumbnailCaptured = true;
-      final appDir = await getApplicationDocumentsDirectory();
-
-      String targetUrl = originalUrl;
-
-      // Native Android MediaMetadataRetriever fails to extract frames from live .m3u8.
-      // If we are playing HLS but have recorded segments, extract from the most recent segment.
-      if (originalUrl.contains('.m3u8') &&
-          selectedRecording!.segments.isNotEmpty) {
-        final lastSegment = selectedRecording!.segments.last;
-        targetUrl = _vmsService.getSegmentUrl(
-          cameraPath: selectedRecording!.name,
-          segment: lastSegment,
-          nextSegment: null,
-          overrideDuration: 10,
-        );
-        debugPrint(
-            '[VMS] Swapped .m3u8 for static segment URL for thumbnail: $targetUrl');
-      }
-
-      debugPrint('[VMS] Capturing thumbnail from: $targetUrl');
-      final xFile = await VideoThumbnail.thumbnailFile(
-        video: targetUrl,
-        thumbnailPath: appDir.path,
-        imageFormat: ImageFormat.JPEG,
-        maxWidth: 320,
-        quality: 50,
-      );
-      final String path = xFile.path;
-
-      if (path.isNotEmpty) {
-        debugPrint('[VMS] Thumbnail captured at $path');
-        await prefs.setString('thumb_$id', path);
-      } else {
-        _thumbnailCaptured = false;
-      }
-    } catch (e) {
-      debugPrint('[VMS] Failed to capture thumbnail: $e');
-      _thumbnailCaptured = false;
     }
   }
 

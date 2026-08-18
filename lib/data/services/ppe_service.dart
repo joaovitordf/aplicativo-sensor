@@ -1,6 +1,6 @@
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:sensortech/core/app_config.dart';
 import 'package:sensortech/data/models/ppe_event_model.dart';
 
 /// Service responsible for querying PPE detection events and downloading images.
@@ -9,7 +9,8 @@ class PpeService {
 
   PpeService(this._dio);
 
-  String get baseUrl => dotenv.env['API_URL'] ?? '';
+  String get baseUrl =>
+      _dio.options.baseUrl.isNotEmpty ? _dio.options.baseUrl : AppConfig.apiUrl;
 
   /// Fetch list of PPE events with filters and pagination.
   ///

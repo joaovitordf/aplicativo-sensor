@@ -33,7 +33,7 @@ class EquipamentosIotViewModel extends ChangeNotifier {
   List<Solution> _solutions = [];
 
   int? _selectedClienteId;
-  int? _selectedStatus; // null = Todos, 1 = Ativos, 0 = Inativos
+  String _selectedFilter = 'all'; // 'all', 'online', 'offline', 'ativo', 'inativo'
   String _searchQuery = '';
 
   bool get isLoading => _isLoading;
@@ -45,12 +45,12 @@ class EquipamentosIotViewModel extends ChangeNotifier {
   List<Solution> get solutions => _solutions;
 
   int? get selectedClienteId => _selectedClienteId;
-  int? get selectedStatus => _selectedStatus;
+  String get selectedFilter => _selectedFilter;
   String get searchQuery => _searchQuery;
 
   int get totalCount => _allEquipamentos.length;
-  int get activeCount => _allEquipamentos.where((e) => e.isAtivo).length;
-  int get inactiveCount => _allEquipamentos.where((e) => !e.isAtivo).length;
+  int get activeCount => _allEquipamentos.where((e) => e.isOnline).length;
+  int get inactiveCount => _allEquipamentos.where((e) => !e.isOnline).length;
 
   Future<void> loadData() async {
     _isLoading = true;
@@ -145,8 +145,8 @@ class EquipamentosIotViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  void setSelectedStatus(int? status) {
-    _selectedStatus = status;
+  void setSelectedFilter(String filter) {
+    _selectedFilter = filter;
     _applyFilters();
     notifyListeners();
   }
@@ -158,10 +158,19 @@ class EquipamentosIotViewModel extends ChangeNotifier {
         return false;
       }
 
-      // Filter by Status (1 = Ativo, 0 = Inativo)
-      if (_selectedStatus != null) {
-        if (_selectedStatus == 1 && !item.isAtivo) return false;
-        if (_selectedStatus == 0 && item.isAtivo) return false;
+      // Filter by Status (Ativo = Online/Conectado, Inativo = Offline)
+      switch (_selectedFilter) {
+        case 'ativo':
+        case 'online':
+          if (!item.isOnline) return false;
+          break;
+        case 'inativo':
+        case 'offline':
+          if (item.isOnline) return false;
+          break;
+        case 'all':
+        default:
+          break;
       }
 
       // Filter by Search Query

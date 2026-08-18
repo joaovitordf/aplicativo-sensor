@@ -92,7 +92,7 @@ class VmsService {
     required RecordingSegment segment,
     RecordingSegment? nextSegment,
     int? overrideDuration,
-    String format = 'fmp4',
+    String format = 'mp4',
   }) {
     final duration =
         overrideDuration ?? calculateSegmentDuration(segment, nextSegment);

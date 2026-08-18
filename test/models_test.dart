@@ -6,8 +6,39 @@ import 'package:sensortech/data/models/recording_model.dart';
 import 'package:sensortech/data/models/equipamento_iot_model.dart';
 import 'package:sensortech/data/models/solution_model.dart';
 import 'package:sensortech/data/models/cliente_detailed_model.dart';
+import 'package:sensortech/core/app_config.dart';
 
 void main() {
+  group('AppConfig Tests', () {
+    tearDown(() {
+      AppConfig.setMockEnvForTesting(null);
+    });
+
+    test('Switches correctly between Staging and Production based on USE_STAGING', () {
+      AppConfig.setMockEnvForTesting({
+        'USE_STAGING': 'false',
+        'API_URL_PROD': 'https://api.example.com',
+        'API_URL_STAGING': 'http://staging.example.com/',
+        'API_IOT_URL': 'http://192.0.2.1/',
+      });
+
+      expect(AppConfig.isStaging, false);
+      expect(AppConfig.apiUrl, 'https://api.example.com');
+      expect(AppConfig.iotApiUrl, 'http://192.0.2.1');
+
+      AppConfig.setMockEnvForTesting({
+        'USE_STAGING': 'true',
+        'API_URL_PROD': 'https://api.example.com',
+        'API_URL_STAGING': 'http://staging.example.com/',
+        'API_IOT_URL': 'http://192.0.2.1',
+      });
+
+      expect(AppConfig.isStaging, true);
+      expect(AppConfig.apiUrl, 'http://staging.example.com');
+      expect(AppConfig.iotApiUrl, 'http://192.0.2.1');
+    });
+  });
+
   group('AuthModel Tests', () {
     test('Parse LoginResponse correctly from real API JSON sample', () {
       final sampleJson = {
@@ -246,7 +277,7 @@ void main() {
   });
 
   group('EquipamentoIotModel Tests', () {
-    test('Parse EquipamentoIot correctly from JSON sample', () {
+    test('Parse EquipamentoIot correctly from JSON sample with statusMqtt', () {
       final sample = {
         "id": 12,
         "nomeEquipamento": "Raspberry PI - Posto 01",
@@ -258,6 +289,7 @@ void main() {
         "idCliente": 8,
         "dataHora": "2026-08-01 10:00:00",
         "enabled": 1,
+        "statusMqtt": 1,
         "idSolucoes": [1, 2],
       };
 
@@ -270,7 +302,13 @@ void main() {
       expect(eq.ipEquipamento, "192.168.1.50");
       expect(eq.idCliente, 8);
       expect(eq.isAtivo, true);
+      expect(eq.statusMqtt, 1);
+      expect(eq.isOnline, true);
       expect(eq.idSolucoes, [1, 2]);
+
+      // Test offline case
+      final offlineEq = eq.copyWith(statusMqtt: 0);
+      expect(offlineEq.isOnline, false);
     });
   });
 

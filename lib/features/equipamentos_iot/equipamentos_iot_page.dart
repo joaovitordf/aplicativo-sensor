@@ -291,13 +291,17 @@ class _EquipamentosIotPageViewState extends State<_EquipamentosIotPageView> {
               child: Row(
                 children: [
                   _buildStatusChip(
-                      'Todos (${viewModel.totalCount})', null, viewModel),
+                      'Todos (${viewModel.totalCount})', 'all', viewModel),
                   const SizedBox(width: 8),
                   _buildStatusChip(
-                      'Ativos (${viewModel.activeCount})', 1, viewModel),
+                      'Ativos (${viewModel.activeCount})', 'ativo', viewModel,
+                      icon: Icons.check_circle_outline,
+                      activeColor: const Color(0xFF2E7D32)),
                   const SizedBox(width: 8),
                   _buildStatusChip(
-                      'Inativos (${viewModel.inactiveCount})', 0, viewModel),
+                      'Inativos (${viewModel.inactiveCount})', 'inativo', viewModel,
+                      icon: Icons.highlight_off,
+                      activeColor: const Color(0xFFC62828)),
                 ],
               ),
             ),
@@ -308,27 +312,43 @@ class _EquipamentosIotPageViewState extends State<_EquipamentosIotPageView> {
   }
 
   Widget _buildStatusChip(
-      String label, int? status, EquipamentosIotViewModel viewModel) {
-    final isSelected = viewModel.selectedStatus == status;
+      String label, String filterKey, EquipamentosIotViewModel viewModel,
+      {IconData? icon, Color? activeColor}) {
+    final isSelected = viewModel.selectedFilter == filterKey;
+    final primaryColor = activeColor ?? kPaletteDeepBlue;
+
     return InkWell(
-      onTap: () => viewModel.setSelectedStatus(status),
+      onTap: () => viewModel.setSelectedFilter(filterKey),
       borderRadius: BorderRadius.circular(20),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
         decoration: BoxDecoration(
-          color: isSelected ? kPaletteDeepBlue : Colors.grey.shade100,
+          color: isSelected ? primaryColor : Colors.grey.shade100,
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: isSelected ? kPaletteDeepBlue : Colors.grey.shade300,
+            color: isSelected ? primaryColor : Colors.grey.shade300,
           ),
         ),
-        child: Text(
-          label,
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
-            color: isSelected ? Colors.white : Colors.black87,
-          ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(
+                icon,
+                size: 14,
+                color: isSelected ? Colors.white : (activeColor ?? Colors.grey.shade700),
+              ),
+              const SizedBox(width: 4),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                fontSize: 12,
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.w500,
+                color: isSelected ? Colors.white : Colors.black87,
+              ),
+            ),
+          ],
         ),
       ),
     );
@@ -347,7 +367,7 @@ class _EquipamentosIotPageViewState extends State<_EquipamentosIotPageView> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Top Row: ID, Nome, and Status Badge
+            // Top Row: ID, Nome, and Status Badge (Ativo / Inativo)
             Row(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -412,17 +432,17 @@ class _EquipamentosIotPageViewState extends State<_EquipamentosIotPageView> {
 
                 // Status Badge (Ativo / Inativo)
                 Container(
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 10, vertical: 4),
                   decoration: BoxDecoration(
-                    color: item.isAtivo
+                    color: item.isOnline
                         ? const Color(0xFFE8F5E9)
-                        : const Color(0xFFEEEEEE),
+                        : const Color(0xFFFFEBEE),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(
-                      color: item.isAtivo
+                      color: item.isOnline
                           ? const Color(0xFFA5D6A7)
-                          : const Color(0xFFBDBDBD),
+                          : const Color(0xFFFFCDD2),
                     ),
                   ),
                   child: Row(
@@ -433,20 +453,20 @@ class _EquipamentosIotPageViewState extends State<_EquipamentosIotPageView> {
                         height: 7,
                         decoration: BoxDecoration(
                           shape: BoxShape.circle,
-                          color: item.isAtivo
+                          color: item.isOnline
                               ? const Color(0xFF2E7D32)
-                              : Colors.grey.shade600,
+                              : const Color(0xFFC62828),
                         ),
                       ),
                       const SizedBox(width: 5),
                       Text(
-                        item.isAtivo ? 'Ativo' : 'Inativo',
+                        item.isOnline ? 'Ativo' : 'Inativo',
                         style: TextStyle(
                           fontSize: 11,
                           fontWeight: FontWeight.bold,
-                          color: item.isAtivo
+                          color: item.isOnline
                               ? const Color(0xFF2E7D32)
-                              : Colors.grey.shade700,
+                              : const Color(0xFFC62828),
                         ),
                       ),
                     ],
@@ -479,7 +499,7 @@ class _EquipamentosIotPageViewState extends State<_EquipamentosIotPageView> {
 
             const SizedBox(height: 12),
 
-            // Metadata Details (IP, Endereço, Data)
+            // Metadata Details (Cadastro)
             Container(
               padding: const EdgeInsets.all(10),
               decoration: BoxDecoration(
@@ -489,23 +509,15 @@ class _EquipamentosIotPageViewState extends State<_EquipamentosIotPageView> {
               ),
               child: Column(
                 children: [
-                  _buildDetailRow(
-                    Icons.wifi,
-                    'IP / Conexão',
-                    item.ipEquipamento?.isNotEmpty == true
-                        ? item.ipEquipamento!
-                        : 'Não informado',
-                  ),
-                  if (item.enderecoInstalacao != null &&
-                      item.enderecoInstalacao!.isNotEmpty) ...[
-                    const SizedBox(height: 6),
+                  if (item.ipEquipamento != null &&
+                      item.ipEquipamento!.trim().isNotEmpty) ...[
                     _buildDetailRow(
-                      Icons.location_on_outlined,
-                      'Endereço',
-                      item.enderecoInstalacao!,
+                      Icons.wifi,
+                      'IP',
+                      item.ipEquipamento!,
                     ),
+                    const SizedBox(height: 6),
                   ],
-                  const SizedBox(height: 6),
                   _buildDetailRow(
                     Icons.calendar_today_outlined,
                     'Cadastro',
@@ -517,28 +529,57 @@ class _EquipamentosIotPageViewState extends State<_EquipamentosIotPageView> {
 
             const SizedBox(height: 12),
 
-            // Botão Acionar Sirene (Simulação Segura)
+            // Botão Acionar Sirene (Bloqueado quando Inativo)
             SizedBox(
               width: double.infinity,
               child: ElevatedButton.icon(
-                onPressed: () => _showSireneConfirmationModal(
-                    context, item, viewModel),
-                icon: const Icon(Icons.campaign, size: 20),
-                label: const Text(
-                  'Acionar Sirene',
-                  style: TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
+                onPressed: item.isOnline
+                    ? () => _showSireneConfirmationModal(
+                        context, item, viewModel)
+                    : null,
+                icon: Icon(
+                  item.isOnline ? Icons.campaign : Icons.campaign_outlined,
+                  size: 20,
+                ),
+                label: Text(
+                  item.isOnline
+                      ? 'Acionar Sirene'
+                      : 'Sirene Indisponível (Inativo)',
+                  style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 13),
                 ),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFD32F2F),
                   foregroundColor: Colors.white,
+                  disabledBackgroundColor: Colors.grey.shade300,
+                  disabledForegroundColor: Colors.grey.shade600,
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10),
                   ),
-                  elevation: 2,
+                  elevation: item.isOnline ? 2 : 0,
                 ),
               ),
             ),
+
+            if (!item.isOnline) ...[
+              const SizedBox(height: 6),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.info_outline,
+                      size: 13, color: Colors.orange.shade800),
+                  const SizedBox(width: 4),
+                  Text(
+                    'Equipamento inativo. O envio para sirene está bloqueado.',
+                    style: TextStyle(
+                      fontSize: 11,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.orange.shade900,
+                    ),
+                  ),
+                ],
+              ),
+            ],
           ],
         ),
       ),
@@ -609,10 +650,11 @@ class _EquipamentosIotPageViewState extends State<_EquipamentosIotPageView> {
     );
   }
 
-  Widget _buildDetailRow(IconData icon, String label, String value) {
+  Widget _buildDetailRow(IconData icon, String label, String value,
+      {Color? valueColor}) {
     return Row(
       children: [
-        Icon(icon, size: 14, color: Colors.grey.shade600),
+        Icon(icon, size: 14, color: valueColor ?? Colors.grey.shade600),
         const SizedBox(width: 6),
         Text(
           '$label: ',
@@ -625,10 +667,10 @@ class _EquipamentosIotPageViewState extends State<_EquipamentosIotPageView> {
         Expanded(
           child: Text(
             value,
-            style: const TextStyle(
+            style: TextStyle(
               fontSize: 12,
               fontWeight: FontWeight.w600,
-              color: Color(0xFF1E293B),
+              color: valueColor ?? const Color(0xFF1E293B),
             ),
             maxLines: 1,
             overflow: TextOverflow.ellipsis,

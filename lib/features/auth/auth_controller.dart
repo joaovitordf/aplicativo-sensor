@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:flutter_dotenv/flutter_dotenv.dart';
+import 'package:sensortech/core/app_config.dart';
 import 'package:sensortech/data/models/auth_model.dart';
 import 'package:sensortech/data/services/auth_service.dart';
 
@@ -53,9 +53,9 @@ class AuthController extends ChangeNotifier {
   }
 
   void _initializeDio() {
-    final apiUrl = dotenv.env['API_URL'] ?? '';
-    final iotApiUrl = dotenv.env['API_IOT_URL'] ?? apiUrl;
-    debugPrint('[AuthController] Initializing Main Dio with base URL: $apiUrl');
+    final apiUrl = AppConfig.apiUrl;
+    final iotApiUrl = AppConfig.iotApiUrl;
+    debugPrint('[AuthController] Initializing Main Dio with base URL: $apiUrl (Staging: ${AppConfig.isStaging})');
     debugPrint('[AuthController] Initializing IoT Dio with base URL: $iotApiUrl');
 
     _dio = Dio(BaseOptions(
@@ -90,6 +90,12 @@ class AuthController extends ChangeNotifier {
       },
       onError: (DioException e, handler) {
         if (e.response?.statusCode == 401) {
+          // Do NOT trigger logout if the 401 occurred during login request
+          final path = e.requestOptions.path;
+          if (path.contains('/api/auth/login')) {
+            return handler.next(e);
+          }
+
           debugPrint('[AuthController] 401 Unauthorized detected - logging out');
           logout();
         }
@@ -105,18 +111,18 @@ class AuthController extends ChangeNotifier {
       _dio!.interceptors.add(LogInterceptor(
         request: true,
         requestHeader: true,
-        requestBody: false,
+        requestBody: true,
         responseHeader: false,
-        responseBody: false,
+        responseBody: true,
         error: true,
         logPrint: (obj) => debugPrint('[DIO] $obj'),
       ));
       _iotDio!.interceptors.add(LogInterceptor(
         request: true,
         requestHeader: true,
-        requestBody: false,
+        requestBody: true,
         responseHeader: false,
-        responseBody: false,
+        responseBody: true,
         error: true,
         logPrint: (obj) => debugPrint('[IOT-DIO] $obj'),
       ));
@@ -181,24 +187,58 @@ class AuthController extends ChangeNotifier {
     } on DioException catch (e) {
       _isLoading = false;
       debugPrint('[AuthController] Login DioException: ${e.response?.statusCode}');
+      debugPrint('[AuthController] Response data: ${e.response?.data}');
 
       if (e.response != null) {
-        switch (e.response!.statusCode) {
-          case 400:
-          case 401:
-            _errorMessage = 'Usuário ou senha incorretos';
-            break;
-          case 403:
-            _errorMessage = 'Acesso negado para esta conta';
-            break;
-          case 404:
-            _errorMessage = 'Serviço de autenticação não encontrado';
-            break;
-          case 500:
-            _errorMessage = 'Erro no servidor. Tente novamente mais tarde.';
-            break;
-          default:
-            _errorMessage = 'Erro ao fazer login (${e.response!.statusCode})';
+        final data = e.response!.data;
+        String? serverError;
+
+        if (data is Map) {
+          if (data['error'] != null && data['error'].toString().trim().isNotEmpty) {
+            serverError = data['error'].toString().trim();
+          } else if (data['message'] != null && data['message'].toString().trim().isNotEmpty) {
+            serverError = data['message'].toString().trim();
+          }
+        } else if (data is String && data.trim().isNotEmpty) {
+          serverError = data.trim();
+        }
+
+        if (serverError != null &&
+            serverError.isNotEmpty &&
+            !serverError.trim().startsWith('<')) {
+          final lower = serverError.toLowerCase();
+          if (lower.contains('credenciais invalidas') ||
+              lower.contains('credenciais inválidas') ||
+              lower.contains('invalid credentials')) {
+            _errorMessage = 'Credenciais inválidas. Verifique seu usuário e senha.';
+          } else {
+            _errorMessage = serverError;
+          }
+        } else {
+          switch (e.response!.statusCode) {
+            case 301:
+            case 302:
+            case 307:
+            case 308:
+              _errorMessage =
+                  'Erro de redirecionamento (${e.response!.statusCode}). Verifique se a URL no .env usa HTTPS.';
+              break;
+            case 400:
+            case 401:
+              _errorMessage = 'Credenciais inválidas. Verifique seu usuário e senha.';
+              break;
+            case 403:
+              _errorMessage = 'Acesso negado para esta conta.';
+              break;
+            case 404:
+              _errorMessage = 'Serviço de autenticação não encontrado.';
+              break;
+            case 500:
+              _errorMessage = 'Erro no servidor. Tente novamente mais tarde.';
+              break;
+            default:
+              _errorMessage = 'Erro ao fazer login (${e.response!.statusCode})';
+          }
         }
       } else if (e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.receiveTimeout) {
@@ -206,7 +246,7 @@ class AuthController extends ChangeNotifier {
       } else if (e.type == DioExceptionType.connectionError) {
         _errorMessage = 'Erro de conexão com o servidor. Verifique sua rede.';
       } else {
-        _errorMessage = 'Erro ao conectar ao servidor';
+        _errorMessage = 'Erro ao conectar ao servidor.';
       }
 
       notifyListeners();
