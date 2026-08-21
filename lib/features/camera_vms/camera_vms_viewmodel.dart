@@ -165,7 +165,7 @@ class CameraVmsViewModel extends ChangeNotifier {
     currentSegmentIndex = -1;
     isLoading = false;
     _updateSegmentsForSelectedDate();
-    notifyListeners();
+    _safeNotifyListeners();
     _startLiveStreamForRecording(recording);
   }
 
@@ -206,7 +206,7 @@ class CameraVmsViewModel extends ChangeNotifier {
   void selectDate(DateTime date) {
     selectedDate = date;
     _updateSegmentsForSelectedDate();
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   // ─── HLS / Live Stream ───────────────────────────────────────────────────
@@ -247,7 +247,7 @@ class CameraVmsViewModel extends ChangeNotifier {
       videoController!.play();
       isPlaying = true;
       videoController!.addListener(_videoListener);
-      notifyListeners();
+      _safeNotifyListeners();
     }).catchError((error) {
       if (_isDisposed || url != currentHlsUrl) {
         controller.dispose();
@@ -267,7 +267,7 @@ class CameraVmsViewModel extends ChangeNotifier {
       } else {
         playerError =
             'Transmissão ao vivo indisponível (câmera offline ou sem stream HLS)';
-        notifyListeners();
+        _safeNotifyListeners();
       }
     });
   }
@@ -287,7 +287,7 @@ class CameraVmsViewModel extends ChangeNotifier {
     if (fallbackLevel >= fallbackDurations.length) {
       playerError =
           'Erro ao carregar gravação. Tente selecionar outro segmento.';
-      notifyListeners();
+      _safeNotifyListeners();
       return;
     }
     final segment = segmentsForSelectedDate[index];
@@ -335,7 +335,7 @@ class CameraVmsViewModel extends ChangeNotifier {
       videoController!.play();
       isPlaying = true;
       videoController!.addListener(_videoListener);
-      notifyListeners();
+      _safeNotifyListeners();
     }).catchError((error) {
       if (_isDisposed || sessionId != _sessionId || url != currentSegmentUrl) {
         controller.dispose();
@@ -358,7 +358,7 @@ class CameraVmsViewModel extends ChangeNotifier {
         _initSegmentPlayback(index, fallbackLevel + 1, sessionId);
       } else {
         playerError = 'Erro ao carregar gravação. Tente novamente.';
-        notifyListeners();
+        _safeNotifyListeners();
       }
     });
   }
@@ -410,7 +410,7 @@ class CameraVmsViewModel extends ChangeNotifier {
         } else {
           if (isPlaying) {
             isPlaying = false;
-            notifyListeners();
+            _safeNotifyListeners();
           }
         }
         return;
@@ -420,7 +420,7 @@ class CameraVmsViewModel extends ChangeNotifier {
     final nowPlaying = value.isPlaying;
     if (nowPlaying != isPlaying) {
       isPlaying = nowPlaying;
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
@@ -435,7 +435,7 @@ class CameraVmsViewModel extends ChangeNotifier {
       videoController!.play();
     }
     isPlaying = videoController!.value.isPlaying;
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   void previousSegment() {
@@ -451,7 +451,7 @@ class CameraVmsViewModel extends ChangeNotifier {
   void changePlaybackSpeed(double speed) {
     playbackSpeed = speed;
     videoController?.setPlaybackSpeed(speed);
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   // ─── Cleanup ──────────────────────────────────────────────────────────────

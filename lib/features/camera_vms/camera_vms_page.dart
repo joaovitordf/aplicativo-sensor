@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:provider/provider.dart';
@@ -604,13 +605,15 @@ class _CameraVmsPageView extends StatelessWidget {
             if (idRasp == null || idRasp <= 0) return;
 
             try {
-              final iotUrl = AppConfig.iotApiUrl;
-              debugPrint(
-                '[Sirene Câmera VMS] Enviando requisição para o backend: '
-                'POST $iotUrl/api/v1/equipamentosiot/timer '
-                'Payload: {"id": $idRasp, "seconds": 5} | '
-                'Câmera: "${camera.nomeCamera}" (camera_id: ${camera.displayId}, idRasp: $idRasp)',
-              );
+              if (kDebugMode) {
+                final iotUrl = AppConfig.iotApiUrl;
+                debugPrint(
+                  '[Sirene Câmera VMS] Enviando requisição para o backend: '
+                  'POST $iotUrl/api/v1/equipamentosiot/timer '
+                  'Payload: {"id": $idRasp, "seconds": 5} | '
+                  'Câmera: "${camera.nomeCamera}" (camera_id: ${camera.displayId}, idRasp: $idRasp)',
+                );
+              }
 
               await viewModel.acionarSirene(id: idRasp, seconds: 5);
 

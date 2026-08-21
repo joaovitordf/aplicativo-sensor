@@ -215,23 +215,23 @@ class ValaViewModel extends ChangeNotifier {
   void setDateRange(DateTime start, DateTime end) {
     selectedStartDate = start;
     selectedEndDate = end;
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   void setTimes(String? start, String? end) {
     startTime = start;
     endTime = end;
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   void setEpiFilter(String? epi) {
     selectedEpi = (epi == null || epi.isEmpty) ? 'presenca_vala' : epi;
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   void setSelectedCamera(int? cameraId) {
     selectedCameraId = cameraId;
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   String getCameraHintText() {
@@ -260,26 +260,26 @@ class ValaViewModel extends ChangeNotifier {
   void selectEvent(int index) {
     if (index >= 0 && index < events.length) {
       selectedIndex = index;
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
   void closeModal() {
     selectedIndex = null;
-    notifyListeners();
+    _safeNotifyListeners();
   }
 
   void nextImage() {
     if (selectedIndex != null && selectedIndex! < events.length - 1) {
       selectedIndex = selectedIndex! + 1;
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
   void previousImage() {
     if (selectedIndex != null && selectedIndex! > 0) {
       selectedIndex = selectedIndex! - 1;
-      notifyListeners();
+      _safeNotifyListeners();
     }
   }
 
@@ -311,7 +311,7 @@ class ValaViewModel extends ChangeNotifier {
     isDownloading = true;
     successMessage = null;
     errorMessage = null;
-    notifyListeners();
+    _safeNotifyListeners();
 
     try {
       if (Platform.isAndroid) {
